@@ -6,6 +6,7 @@ import { ProxyCheckValidationError } from "../errors";
 import type { RuleOptions, RuleResponse } from "../types";
 import { API_ENDPOINTS } from "../types/constants";
 import { RuleOptionsSchema } from "../types/schemas";
+import { stripUndefined } from "../utils/object";
 import { BaseService } from "./base";
 
 /**
@@ -225,19 +226,10 @@ export class RulesService extends BaseService {
   private validateOptions(options: RuleOptions): RuleOptions {
     try {
       const parsed = RuleOptionsSchema.parse(options) as any;
-      return this.stripUndefined(parsed) as RuleOptions;
+      return stripUndefined(parsed) as RuleOptions;
     } catch (_error) {
       throw new ProxyCheckValidationError("Invalid rule options provided", "options", options);
     }
   }
 
-  private stripUndefined<T extends Record<string, unknown>>(obj: T): T {
-    const result = {} as T;
-    for (const [key, value] of Object.entries(obj)) {
-      if (value !== undefined) {
-        result[key as keyof T] = value as T[keyof T];
-      }
-    }
-    return result;
-  }
 }

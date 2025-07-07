@@ -6,6 +6,7 @@ import { ProxyCheckValidationError } from "../errors";
 import type { StatsOptions, StatsResponse } from "../types";
 import { API_ENDPOINTS } from "../types/constants";
 import { StatsOptionsSchema } from "../types/schemas";
+import { stripUndefined } from "../utils/object";
 import { BaseService } from "./base";
 
 /**
@@ -205,19 +206,10 @@ export class StatsService extends BaseService {
   private validateOptions(options: StatsOptions): StatsOptions {
     try {
       const parsed = StatsOptionsSchema.parse(options) as any;
-      return this.stripUndefined(parsed) as StatsOptions;
+      return stripUndefined(parsed) as StatsOptions;
     } catch (_error) {
       throw new ProxyCheckValidationError("Invalid stats options provided", "options", options);
     }
   }
 
-  private stripUndefined<T extends Record<string, unknown>>(obj: T): T {
-    const result = {} as T;
-    for (const [key, value] of Object.entries(obj)) {
-      if (value !== undefined) {
-        result[key as keyof T] = value as T[keyof T];
-      }
-    }
-    return result;
-  }
 }

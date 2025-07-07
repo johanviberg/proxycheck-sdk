@@ -6,6 +6,7 @@ import { ProxyCheckValidationError } from "../errors";
 import type { ListOptions, ListResponse } from "../types";
 import { API_ENDPOINTS } from "../types/constants";
 import { ListOptionsSchema } from "../types/schemas";
+import { stripUndefined } from "../utils/object";
 import { BaseService } from "./base";
 
 /**
@@ -229,19 +230,10 @@ export class ListingService extends BaseService {
   private validateOptions(options: ListOptions): ListOptions {
     try {
       const parsed = ListOptionsSchema.parse(options) as any;
-      return this.stripUndefined(parsed) as ListOptions;
+      return stripUndefined(parsed) as ListOptions;
     } catch (_error) {
       throw new ProxyCheckValidationError("Invalid list options provided", "options", options);
     }
   }
 
-  private stripUndefined<T extends Record<string, unknown>>(obj: T): T {
-    const result = {} as T;
-    for (const [key, value] of Object.entries(obj)) {
-      if (value !== undefined) {
-        result[key as keyof T] = value as T[keyof T];
-      }
-    }
-    return result;
-  }
 }

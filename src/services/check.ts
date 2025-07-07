@@ -13,6 +13,7 @@ import { ProxyCheckValidationError } from "../errors";
 import type { AddressCheckResult, CheckResponse, ProxyCheckOptions } from "../types";
 import { API_ENDPOINTS } from "../types/constants";
 import { ProxyCheckOptionsSchema } from "../types/schemas";
+import { stripUndefined } from "../utils/object";
 import { BaseService } from "./base";
 
 /**
@@ -216,21 +217,12 @@ export class CheckService extends BaseService {
   private validateOptions(options: ProxyCheckOptions): ProxyCheckOptions {
     try {
       const parsed = ProxyCheckOptionsSchema.parse(options) as any;
-      return this.stripUndefined(parsed) as ProxyCheckOptions;
+      return stripUndefined(parsed) as ProxyCheckOptions;
     } catch (_error) {
       throw new ProxyCheckValidationError("Invalid options provided", "options", options);
     }
   }
 
-  private stripUndefined<T extends Record<string, unknown>>(obj: T): T {
-    const result = {} as T;
-    for (const [key, value] of Object.entries(obj)) {
-      if (value !== undefined) {
-        result[key as keyof T] = value as T[keyof T];
-      }
-    }
-    return result;
-  }
 
   /**
    * Add blocking logic for single address checks

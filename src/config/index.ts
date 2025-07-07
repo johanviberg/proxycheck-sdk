@@ -8,6 +8,7 @@ import { createLogger, type Logger } from "../logging";
 import type { ClientConfig, ProxyCheckOptions } from "../types";
 import { DEFAULTS } from "../types/constants";
 import { ClientConfigSchema, ProxyCheckOptionsSchema } from "../types/schemas";
+import { stripUndefined } from "../utils/object";
 
 /**
  * Query parameters interface
@@ -236,18 +237,6 @@ export class ConfigManager {
   }
 }
 
-/**
- * Helper to remove undefined values from an object for exactOptionalPropertyTypes
- */
-function stripUndefined<T extends Record<string, unknown>>(obj: T): T {
-  const result = {} as T;
-  for (const [key, value] of Object.entries(obj)) {
-    if (value !== undefined) {
-      result[key as keyof T] = value as T[keyof T];
-    }
-  }
-  return result;
-}
 
 /**
  * Validate and merge ProxyCheck options
