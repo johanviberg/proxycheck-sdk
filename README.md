@@ -10,6 +10,12 @@ An unofficial, modern, type-safe TypeScript/JavaScript SDK for the [ProxyCheck.i
 
 > **Note**: This is an unofficial third-party SDK and is not affiliated with or endorsed by ProxyCheck.io.
 
+## 🚀 Live Demo
+
+**Try the SDK in action:** [ProxyCheck SDK Interactive Demo](https://proxycheck-sdk-demo-site.vercel.app/)
+
+Experience the SDK features with a live, interactive demo site. Test IP address checking and email validation without any setup required.
+
 ## Features
 
 - 🚀 **Modern TypeScript**: Full type safety with intelligent IntelliSense
