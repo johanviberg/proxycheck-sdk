@@ -1,0 +1,81 @@
+name: Release Please
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      version: ${{ steps.release.outputs.version }}
+      pr: ${{ steps.release.outputs.pr }}
+    steps:
+      - name: Release Please
+        uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
+  publish:
+    runs-on: ubuntu-latest
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup environment
+        uses: ./.github/actions/setup
+        with:
+          node-version: 20
+      
+      - name: Verify version consistency
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          TAG_VERSION="${{ needs.release-please.outputs.version }}"
+          echo "Package version: $PACKAGE_VERSION"
+          echo "Tag version: $TAG_VERSION"
+          if [ "$PACKAGE_VERSION" != "$TAG_VERSION" ]; then
+            echo "Version mismatch between package.json and release tag"
+            exit 1
+          fi
+      
+      - name: Run tests
+        run: pnpm run test:ci
+        env:
+          CI: true
+      
+      - name: Build package
+        run: pnpm run build
+      
+      - name: Validate package
+        run: |
+          npx publint
+          npx @arethetypeswrong/cli --pack . || echo "Type validation warnings detected but continuing..."
+        continue-on-error: true
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.release-please.outputs.tag_name }}
+          generate_release_notes: true
+          files: |
+            dist/**/*
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Publish to npm
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

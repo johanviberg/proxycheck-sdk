@@ -1,0 +1,49 @@
+# Source files (only ship built files)
+src/
+tests/
+examples/
+
+# Configuration files
+.editorconfig
+.gitignore
+biome.json
+jest.config.js
+rollup.config.mjs
+tsconfig.json
+tsconfig.build.json
+TODOS.md
+CLAUDE.md
+PROXYCHECK.md
+
+# Development files
+*.test.ts
+*.spec.ts
+*.test.js
+*.spec.js
+
+# CI/CD
+.github/
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# IDE files
+.vscode/
+.idea/
+
+# Build artifacts not needed
+*.tsbuildinfo
+
+# Logs
+*.log
+pnpm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+.cache/

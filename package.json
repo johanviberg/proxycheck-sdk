@@ -1,0 +1,151 @@
+{
+  "name": "proxycheck-sdk",
+  "version": "0.9.0",
+  "description": "Modern TypeScript SDK for the ProxyCheck.io V2 API - Detect proxies, VPNs, and manage IP reputation",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "type": "commonjs",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "release-please": {
+    "release-type": "node",
+    "package-name": "proxycheck-sdk",
+    "changelog-sections": [
+      {"type": "feat", "section": "Features"},
+      {"type": "fix", "section": "Bug Fixes"},
+      {"type": "perf", "section": "Performance Improvements"},
+      {"type": "deps", "section": "Dependencies"},
+      {"type": "revert", "section": "Reverts"},
+      {"type": "docs", "section": "Documentation", "hidden": false},
+      {"type": "style", "section": "Styles", "hidden": true},
+      {"type": "chore", "section": "Miscellaneous", "hidden": true},
+      {"type": "refactor", "section": "Code Refactoring", "hidden": true},
+      {"type": "test", "section": "Tests", "hidden": true},
+      {"type": "build", "section": "Build System", "hidden": true},
+      {"type": "ci", "section": "Continuous Integration", "hidden": true}
+    ]
+  },
+  "scripts": {
+    "build": "rollup -c",
+    "build:watch": "rollup -c --watch",
+    "dev": "rollup -c --watch",
+    "clean": "rimraf dist",
+    "prebuild": "pnpm run clean",
+    "type-check": "tsc --noEmit",
+    "type-check:watch": "tsc --noEmit --watch",
+    "lint": "biome lint ./src",
+    "lint:fix": "biome lint --write ./src",
+    "format": "biome format --write ./src",
+    "check": "biome check ./src",
+    "check:fix": "biome check --write ./src",
+    "prepublishOnly": "pnpm run test:ci && pnpm run build",
+    "release": "pnpm run prepublishOnly && npm publish",
+    "release:dry": "pnpm run prepublishOnly && npm publish --dry-run",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:ci": "jest --ci --coverage --maxWorkers=2",
+    "test:compatibility": "tests/compatibility/run-compatibility-tests.sh",
+    "test:commonjs": "node tests/compatibility/commonjs-example.js",
+    "test:esm": "node tests/compatibility/esm-example.mjs",
+    "test:typescript": "tsc --project tests/compatibility/tsconfig.json",
+    "examples": "tsx examples/run-all-examples.ts",
+    "examples:basic": "tsx examples/basic-usage.ts",
+    "examples:batch": "tsx examples/batch-processing.ts",
+    "examples:country": "tsx examples/country-filtering.ts",
+    "examples:errors": "tsx examples/error-handling.ts",
+    "examples:lists": "tsx examples/list-management.ts",
+    "docs": "typedoc",
+    "docs:watch": "typedoc --watch",
+    "prepare": "scripts/install-hooks.sh || true",
+    "hooks:install": "lefthook install",
+    "hooks:uninstall": "lefthook uninstall",
+    "hooks:run": "lefthook run"
+  },
+  "keywords": [
+    "proxycheck",
+    "proxy",
+    "vpn",
+    "detection",
+    "ip",
+    "reputation",
+    "security",
+    "api",
+    "sdk",
+    "typescript",
+    "fraud",
+    "blacklist",
+    "whitelist",
+    "geolocation",
+    "ip-lookup",
+    "threat-detection",
+    "risk-assessment",
+    "email-validation",
+    "disposable-email",
+    "node",
+    "nodejs",
+    "esm",
+    "commonjs"
+  ],
+  "author": "Johan Viberg",
+  "license": "MIT",
+  "packageManager": "pnpm@10.12.4",
+  "engines": {
+    "node": ">=18.12.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/johanviberg/proxycheck-sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/johanviberg/proxycheck-sdk/issues"
+  },
+  "homepage": "https://github.com/johanviberg/proxycheck-sdk#readme",
+  "funding": {
+    "type": "individual",
+    "url": "https://johanviberg.com"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.0.6",
+    "@jest/globals": "^30.0.4",
+    "@rollup/plugin-commonjs": "^28.0.6",
+    "@rollup/plugin-node-resolve": "^16.0.1",
+    "@rollup/plugin-typescript": "^12.1.4",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.0.10",
+    "jest": "^30.0.4",
+    "rimraf": "^6.0.1",
+    "rollup": "^4.44.2",
+    "rollup-plugin-dts": "^6.2.1",
+    "ts-jest": "^29.4.0",
+    "tslib": "^2.8.1",
+    "tsx": "^4.20.3",
+    "typedoc": "^0.28.7",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "axios": "^1.10.0",
+    "zod": "^3.25.74"
+  },
+  "size-limit": [
+    {
+      "path": "dist/index.js",
+      "limit": "50 KB"
+    },
+    {
+      "path": "dist/index.mjs",
+      "limit": "45 KB"
+    }
+  ]
+}

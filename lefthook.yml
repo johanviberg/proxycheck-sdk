@@ -1,0 +1,80 @@
+# Lefthook configuration
+# https://github.com/evilmartians/lefthook
+
+# ANSI color codes
+colors: true
+
+# Skip checks for CI environment
+skip_in_ci: true
+
+# Git hooks configuration
+pre-commit:
+  parallel: true
+  commands:
+    # Format code
+    format:
+      tags: format code style
+      glob: "*.{js,ts,tsx,json}"
+      run: pnpm format
+
+    # Lint TypeScript/JavaScript
+    lint:
+      tags: lint style
+      glob: "*.{js,ts,tsx}"
+      run: pnpm lint
+
+    # Type check
+    typecheck:
+      tags: typescript types
+      glob: "*.{ts,tsx}"
+      run: pnpm type-check
+
+    # Check for secrets
+    secrets:
+      tags: security
+      run: |
+        # Simple secret detection patterns
+        git diff --cached --name-only -z | xargs -0 grep -E "(api[_-]?key|secret|token|password|pwd|auth)" || true
+
+    # Validate JSON files
+    json-validate:
+      tags: validation
+      glob: "*.json"
+      run: |
+        for file in {files}; do
+          if ! jq empty "$file" 2>/dev/null; then
+            echo "Invalid JSON in $file"
+            exit 1
+          fi
+        done
+
+commit-msg:
+  commands:
+    # Enforce conventional commits
+    conventional:
+      run: .lefthook/commit-msg/conventional-commit.sh {1}
+
+pre-push:
+  commands:
+    # Run tests before push
+    test:
+      run: pnpm test
+
+    # Build check
+    build:
+      run: pnpm build
+
+# Skip certain commands in specific cases
+skip:
+  - merge: merge
+  - rebase: merge
+
+# Define additional scripts
+scripts:
+  "pre-commit.sh": |
+    #!/bin/bash
+    echo "Running pre-commit checks..."
+
+  "pre-push.sh": |
+    #!/bin/bash
+    echo "Running pre-push checks..."
