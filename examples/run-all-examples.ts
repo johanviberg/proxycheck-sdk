@@ -121,9 +121,9 @@ async function main() {
   }
 
   console.log('\n📚 For more information:');
-  console.log('   • Documentation: https://docs.proxycheck.io');
-  console.log('   • GitHub: https://github.com/your-org/proxycheck-sdk');
-  console.log('   • Support: support@proxycheck.io');
+  console.log('   • API Documentation: https://proxycheck.io/api');
+  console.log('   • GitHub: https://github.com/johanviberg/proxycheck-sdk');
+  console.log('   • ProxyCheck.io: https://proxycheck.io');
   
   process.exit(failureCount === 0 ? 0 : 1);
 }

@@ -333,7 +333,6 @@ We will respond within 48 hours and work with you to resolve the issue.
 - Check the [documentation](https://github.com/johanviberg/proxycheck-sdk#readme)
 - Search [existing issues](https://github.com/johanviberg/proxycheck-sdk/issues)
 - Ask questions in issues with the `question` label
-- Join the [ProxyCheck.io Discord](https://discord.gg/proxycheck) community
 
 ### Stay Updated
 

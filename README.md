@@ -544,10 +544,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Support
 
-- 📖 [ProxyCheck.io Documentation](https://docs.proxycheck.io)
+- 📖 [ProxyCheck.io API Documentation](https://proxycheck.io/api)
 - 🐛 [SDK Issues](https://github.com/johanviberg/proxycheck-sdk/issues)
-- 💬 [ProxyCheck.io Discord](https://discord.gg/proxycheck)
-- 📧 [ProxyCheck.io Support](mailto:support@proxycheck.io)
+- 🌐 [ProxyCheck.io Website](https://proxycheck.io)
 
 ## Changelog
 
