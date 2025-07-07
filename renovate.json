@@ -1,0 +1,74 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:base",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    ":preserveSemverRanges",
+    "group:allNonMajor",
+    "schedule:earlyMondays"
+  ],
+  "labels": ["dependencies"],
+  "packageRules": [
+    {
+      "description": "Automatically merge minor and patch updates for dev dependencies",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "description": "Disable automerge for production dependencies",
+      "matchDepTypes": ["dependencies"],
+      "automerge": false
+    },
+    {
+      "description": "Group TypeScript-related packages",
+      "matchPackagePatterns": ["^@types/", "typescript"],
+      "groupName": "TypeScript packages"
+    },
+    {
+      "description": "Group testing-related packages",
+      "matchPackagePatterns": ["jest", "^@jest/"],
+      "groupName": "Testing packages"
+    },
+    {
+      "description": "Group build tool packages",
+      "matchPackagePatterns": ["rollup", "^@rollup/"],
+      "groupName": "Build tools"
+    },
+    {
+      "description": "Require approval for major updates",
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Pin exact versions for production dependencies",
+      "matchDepTypes": ["dependencies"],
+      "rangeStrategy": "pin"
+    },
+    {
+      "description": "Use caret ranges for dev dependencies",
+      "matchDepTypes": ["devDependencies"],
+      "rangeStrategy": "bump"
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "labels": ["security"],
+    "automerge": true
+  },
+  "prConcurrentLimit": 3,
+  "prCreation": "not-pending",
+  "prHourlyLimit": 2,
+  "semanticCommitType": "chore",
+  "semanticCommitScope": "deps",
+  "postUpdateOptions": [
+    "pnpmDedupe"
+  ],
+  "ignoreDeps": [],
+  "ignorePaths": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/coverage/**"
+  ]
+}
