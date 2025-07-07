@@ -237,7 +237,6 @@ export class ConfigManager {
   }
 }
 
-
 /**
  * Validate and merge ProxyCheck options
  */

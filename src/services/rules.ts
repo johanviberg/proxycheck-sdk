@@ -231,5 +231,4 @@ export class RulesService extends BaseService {
       throw new ProxyCheckValidationError("Invalid rule options provided", "options", options);
     }
   }
-
 }

@@ -211,5 +211,4 @@ export class StatsService extends BaseService {
       throw new ProxyCheckValidationError("Invalid stats options provided", "options", options);
     }
   }
-
 }

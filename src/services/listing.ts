@@ -235,5 +235,4 @@ export class ListingService extends BaseService {
       throw new ProxyCheckValidationError("Invalid list options provided", "options", options);
     }
   }
-
 }

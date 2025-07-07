@@ -223,7 +223,6 @@ export class CheckService extends BaseService {
     }
   }
 
-
   /**
    * Add blocking logic for single address checks
    */
