@@ -1,0 +1,184 @@
+name: Integration Tests
+
+on:
+  # Run nightly at 2 AM UTC
+  schedule:
+    - cron: '0 2 * * *'
+  
+  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      test_level:
+        description: 'Test level to run'
+        required: true
+        default: 'smoke'
+        type: choice
+        options:
+          - smoke
+          - full
+          - verbose
+  
+  # Trigger on PR comment
+  issue_comment:
+    types: [created]
+
+jobs:
+  # Check if we should run based on comment
+  check-comment:
+    if: github.event_name == 'issue_comment' && contains(github.event.comment.body, '/test-integration')
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.check.outputs.should_run }}
+      test_level: ${{ steps.check.outputs.test_level }}
+    steps:
+      - name: Check comment
+        id: check
+        run: |
+          COMMENT="${{ github.event.comment.body }}"
+          if [[ "$COMMENT" == *"/test-integration"* ]]; then
+            echo "should_run=true" >> $GITHUB_OUTPUT
+            if [[ "$COMMENT" == *"full"* ]]; then
+              echo "test_level=full" >> $GITHUB_OUTPUT
+            elif [[ "$COMMENT" == *"verbose"* ]]; then
+              echo "test_level=verbose" >> $GITHUB_OUTPUT
+            else
+              echo "test_level=smoke" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "should_run=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: React to comment
+        if: steps.check.outputs.should_run == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.reactions.createForIssueComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: context.payload.comment.id,
+              content: 'rocket'
+            });
+
+  # Main integration test job
+  integration:
+    name: Live API Tests
+    runs-on: ubuntu-latest
+    # Run if scheduled, manual, or approved comment
+    if: |
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issue_comment' && needs.check-comment.outputs.should_run == 'true')
+    needs: [check-comment]
+    if: |
+      always() &&
+      (needs.check-comment.result == 'skipped' || needs.check-comment.result == 'success')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # For PR comments, checkout the PR branch
+          ref: ${{ github.event.issue.pull_request && format('refs/pull/{0}/head', github.event.issue.number) || github.ref }}
+
+      - name: Setup environment
+        uses: ./.github/actions/setup
+        with:
+          node-version: 20
+
+      - name: Determine test level
+        id: test-level
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "level=${{ github.event.inputs.test_level }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" = "issue_comment" ]; then
+            echo "level=${{ needs.check-comment.outputs.test_level }}" >> $GITHUB_OUTPUT
+          else
+            echo "level=full" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run smoke tests
+        if: steps.test-level.outputs.level == 'smoke'
+        run: pnpm test:integration:quick
+        env:
+          PROXYCHECK_TEST_API_KEY: ${{ secrets.PROXYCHECK_TEST_API_KEY }}
+          CI: true
+
+      - name: Run full test suite
+        if: steps.test-level.outputs.level == 'full'
+        run: pnpm test:integration:full
+        env:
+          PROXYCHECK_TEST_API_KEY: ${{ secrets.PROXYCHECK_TEST_API_KEY }}
+          CI: true
+
+      - name: Run verbose tests
+        if: steps.test-level.outputs.level == 'verbose'
+        run: pnpm test:integration:verbose
+        env:
+          PROXYCHECK_TEST_API_KEY: ${{ secrets.PROXYCHECK_TEST_API_KEY }}
+          CI: true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: |
+            coverage/
+            test-results/
+          retention-days: 7
+
+      - name: Comment on PR
+        if: github.event_name == 'issue_comment' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const outcome = '${{ job.status }}';
+            const level = '${{ steps.test-level.outputs.level }}';
+            const emoji = outcome === 'success' ? '✅' : '❌';
+            const status = outcome === 'success' ? 'passed' : 'failed';
+            
+            const body = `${emoji} Integration tests (${level}) ${status}\n\n[View Run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`;
+            
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.issue.number,
+              body: body
+            });
+
+  # Notify on failure for scheduled runs
+  notify-failure:
+    name: Notify Failure
+    runs-on: ubuntu-latest
+    needs: integration
+    if: |
+      failure() &&
+      github.event_name == 'schedule'
+    steps:
+      - name: Create issue for failure
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const date = new Date().toISOString().split('T')[0];
+            const title = `Integration Tests Failed - ${date}`;
+            
+            // Check if issue already exists
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'integration-test-failure',
+              state: 'open'
+            });
+            
+            const existingIssue = issues.data.find(issue => issue.title === title);
+            
+            if (!existingIssue) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: `The nightly integration tests failed.\n\n[View Run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`,
+                labels: ['integration-test-failure', 'automated']
+              });
+            }
