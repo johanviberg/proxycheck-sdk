@@ -16,38 +16,37 @@ declare const ProxyCheckClient: any;
 
 async function denoExample() {
   try {
-    console.log('Testing Deno environment compatibility...');
-    
+    console.log("Testing Deno environment compatibility...");
+
     // Check if we're in Deno environment
-    const isDeno = typeof Deno !== 'undefined';
-    console.log('Is Deno environment:', isDeno);
-    
+    const isDeno = typeof Deno !== "undefined";
+    console.log("Is Deno environment:", isDeno);
+
     if (isDeno) {
       // Get API key from environment
-      const apiKey = Deno.env.get('PROXYCHECK_API_KEY') || 'demo-key';
-      
+      const _apiKey = Deno.env.get("PROXYCHECK_API_KEY") || "demo-key";
+
       // Create client (this would work in actual Deno environment)
       // const client = new ProxyCheckClient({
       //   apiKey: apiKey,
       //   tlsSecurity: true
       // });
-      
-      console.log('✓ Deno environment detected');
-      console.log('✓ Environment variables accessible');
-      console.log('✓ HTTP permissions available');
-      
+
+      console.log("✓ Deno environment detected");
+      console.log("✓ Environment variables accessible");
+      console.log("✓ HTTP permissions available");
+
       // Test that Web APIs are available
-      console.log('✓ fetch API available:', typeof fetch !== 'undefined');
-      console.log('✓ URL API available:', typeof URL !== 'undefined');
-      console.log('✓ crypto API available:', typeof crypto !== 'undefined');
-      
+      console.log("✓ fetch API available:", typeof fetch !== "undefined");
+      console.log("✓ URL API available:", typeof URL !== "undefined");
+      console.log("✓ crypto API available:", typeof crypto !== "undefined");
+
       return true;
-    } else {
-      console.log('Not running in Deno environment');
-      return false;
     }
+    console.log("Not running in Deno environment");
+    return false;
   } catch (error) {
-    console.error('Deno compatibility test failed:', error);
+    console.error("Deno compatibility test failed:", error);
     return false;
   }
 }
@@ -58,11 +57,11 @@ export { denoExample };
 // Run if executed directly in Deno
 if (import.meta.main) {
   denoExample()
-    .then(success => {
+    .then((success) => {
       Deno.exit(success ? 0 : 1);
     })
-    .catch(error => {
-      console.error('Test failed:', error);
+    .catch((error) => {
+      console.error("Test failed:", error);
       Deno.exit(1);
     });
 }

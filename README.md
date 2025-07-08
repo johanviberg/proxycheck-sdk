@@ -10,6 +10,8 @@ An unofficial, modern, type-safe TypeScript/JavaScript SDK for the [ProxyCheck.i
 
 > **Note**: This is an unofficial third-party SDK and is not affiliated with or endorsed by ProxyCheck.io.
 
+> **⚠️ Server-Side Only**: This SDK is designed for Node.js server environments and is **not suitable for browser/client-side use**. It requires server-side execution to protect your API key and avoid CORS restrictions.
+
 ## 🚀 Live Demo
 
 **Try the SDK in action:** [ProxyCheck SDK Interactive Demo](https://proxycheck-sdk-demo-site.vercel.app/)
@@ -34,8 +36,9 @@ Experience the SDK features with a live, interactive demo site. Test IP address 
 
 ### Requirements
 
-- Node.js 18.12.0 or higher
+- **Node.js 18.12.0 or higher** (server-side only)
 - TypeScript 4.5+ (for TypeScript users)
+- **Not compatible with browsers** - API key must be protected on server-side
 
 ### Installation
 

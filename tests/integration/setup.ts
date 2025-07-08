@@ -1,22 +1,22 @@
 /**
  * Integration test setup
- * 
+ *
  * This file configures the environment for live API tests.
  * Tests will only run if explicitly enabled via environment variables.
  */
 
-import { ProxyCheckClient } from '../../src';
+import { ProxyCheckClient } from "../../src";
 
 // Environment configuration
 export const API_KEY = process.env.PROXYCHECK_TEST_API_KEY;
-export const RUN_LIVE_TESTS = process.env.RUN_LIVE_API_TESTS === 'true';
+export const RUN_LIVE_TESTS = process.env.RUN_LIVE_API_TESTS === "true";
 export const TEST_TIMEOUT = 30000; // 30 seconds per test
 export const RATE_LIMIT_DELAY = 1000; // 1 second between requests
 
 // Test levels
 export const RUN_SMOKE_TESTS = RUN_LIVE_TESTS;
-export const RUN_COMPREHENSIVE_TESTS = process.env.RUN_COMPREHENSIVE_TESTS === 'true';
-export const VERBOSE_LOGGING = process.env.VERBOSE_TEST_LOGGING === 'true';
+export const RUN_COMPREHENSIVE_TESTS = process.env.RUN_COMPREHENSIVE_TESTS === "true";
+export const VERBOSE_LOGGING = process.env.VERBOSE_TEST_LOGGING === "true";
 
 // Global test client instance
 let testClient: ProxyCheckClient | null = null;
@@ -28,8 +28,8 @@ export function getTestClient(): ProxyCheckClient {
   if (!testClient) {
     if (!API_KEY) {
       throw new Error(
-        'PROXYCHECK_TEST_API_KEY environment variable is required for live tests.\n' +
-        'Please set it to a valid ProxyCheck.io API key.'
+        "PROXYCHECK_TEST_API_KEY environment variable is required for live tests.\n" +
+          "Please set it to a valid ProxyCheck.io API key.",
       );
     }
 
@@ -38,12 +38,14 @@ export function getTestClient(): ProxyCheckClient {
       retries: 3,
       retryDelay: 2000,
       timeout: 20000,
-      logging: VERBOSE_LOGGING ? {
-        level: 'debug',
-        format: 'pretty',
-        timestamp: true,
-        colors: true
-      } : undefined
+      logging: VERBOSE_LOGGING
+        ? {
+            level: "debug",
+            format: "pretty",
+            timestamp: true,
+            colors: true,
+          }
+        : undefined,
     });
   }
 
@@ -56,9 +58,9 @@ export function getTestClient(): ProxyCheckClient {
 export function skipIfNotLive() {
   if (!RUN_LIVE_TESTS) {
     console.log(
-      '\n⚠️  Skipping live API tests. To run them:\n' +
-      '   export RUN_LIVE_API_TESTS=true\n' +
-      '   export PROXYCHECK_TEST_API_KEY=your-api-key\n'
+      "\n⚠️  Skipping live API tests. To run them:\n" +
+        "   export RUN_LIVE_API_TESTS=true\n" +
+        "   export PROXYCHECK_TEST_API_KEY=your-api-key\n",
     );
     return true;
   }
@@ -71,8 +73,8 @@ export function skipIfNotLive() {
 export function skipIfNotComprehensive() {
   if (!RUN_COMPREHENSIVE_TESTS) {
     console.log(
-      '\n⚠️  Skipping comprehensive tests. To run them:\n' +
-      '   export RUN_COMPREHENSIVE_TESTS=true\n'
+      "\n⚠️  Skipping comprehensive tests. To run them:\n" +
+        "   export RUN_COMPREHENSIVE_TESTS=true\n",
     );
     return true;
   }
@@ -82,9 +84,7 @@ export function skipIfNotComprehensive() {
 // Global setup
 beforeAll(() => {
   if (RUN_LIVE_TESTS && !API_KEY) {
-    throw new Error(
-      'PROXYCHECK_TEST_API_KEY is required when RUN_LIVE_API_TESTS is true'
-    );
+    throw new Error("PROXYCHECK_TEST_API_KEY is required when RUN_LIVE_API_TESTS is true");
   }
 });
 
