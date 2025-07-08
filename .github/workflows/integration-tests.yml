@@ -66,13 +66,12 @@ jobs:
     runs-on: ubuntu-latest
     # Run if scheduled, manual, or approved comment
     if: |
-      github.event_name == 'schedule' ||
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'issue_comment' && needs.check-comment.outputs.should_run == 'true')
-    needs: [check-comment]
-    if: |
       always() &&
+      (github.event_name == 'schedule' ||
+       github.event_name == 'workflow_dispatch' ||
+       (github.event_name == 'issue_comment' && needs.check-comment.outputs.should_run == 'true')) &&
       (needs.check-comment.result == 'skipped' || needs.check-comment.result == 'success')
+    needs: [check-comment]
     
     steps:
       - name: Checkout code
