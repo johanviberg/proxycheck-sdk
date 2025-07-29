@@ -4,13 +4,13 @@
  * This example demonstrates how to use the ProxyCheck SDK with various logging configurations.
  */
 
-import { ProxyCheckClient } from "../src";
+import { ProxyCheck } from "../src";
 
 // Example 1: Basic logging with default settings
 async function basicLogging() {
   console.log("📝 Example 1: Basic Logging\n");
 
-  const client = new ProxyCheckClient({
+  const client = new ProxyCheck({
     apiKey: process.env.PROXYCHECK_API_KEY || "your-api-key-here",
     logging: {
       level: "info",
@@ -18,7 +18,7 @@ async function basicLogging() {
   });
 
   try {
-    const result = await client.check.checkAddress("8.8.8.8");
+    const result = await client.check("8.8.8.8");
     console.log("Result:", JSON.stringify(result, null, 2));
   } catch (error) {
     console.error("Error:", error);
@@ -29,7 +29,7 @@ async function basicLogging() {
 async function debugLogging() {
   console.log("\n🔍 Example 2: Debug Logging\n");
 
-  const client = new ProxyCheckClient({
+  const client = new ProxyCheck({
     apiKey: process.env.PROXYCHECK_API_KEY || "your-api-key-here",
     logging: {
       level: "debug",
@@ -41,7 +41,7 @@ async function debugLogging() {
 
   try {
     // This will show detailed debug information
-    const result = await client.check.checkAddresses(["8.8.8.8", "1.1.1.1"]);
+    const result = await client.checkes(["8.8.8.8", "1.1.1.1"]);
     console.log("Result:", JSON.stringify(result, null, 2));
   } catch (error) {
     console.error("Error:", error);
@@ -52,7 +52,7 @@ async function debugLogging() {
 async function jsonLogging() {
   console.log("\n📊 Example 3: JSON Logging\n");
 
-  const client = new ProxyCheckClient({
+  const client = new ProxyCheck({
     apiKey: process.env.PROXYCHECK_API_KEY || "your-api-key-here",
     logging: {
       level: "info",
@@ -62,7 +62,7 @@ async function jsonLogging() {
   });
 
   try {
-    const result = await client.check.isProxy("8.8.8.8");
+    const result = await client.isProxy("8.8.8.8");
     console.log("Is proxy:", result);
   } catch (error) {
     console.error("Error:", error);
@@ -75,7 +75,7 @@ async function customLogging() {
 
   const logs: Array<any> = [];
 
-  const client = new ProxyCheckClient({
+  const client = new ProxyCheck({
     apiKey: process.env.PROXYCHECK_API_KEY || "your-api-key-here",
     logging: {
       level: "debug",
@@ -99,7 +99,7 @@ async function customLogging() {
   });
 
   try {
-    await client.check.getDetailedInfo("8.8.8.8");
+    await client.check("8.8.8.8", { enrich: { risk: "detailed", network: true, location: true } });
 
     console.log("\n📋 Captured Logs:");
     console.log(`Total log entries: ${logs.length}`);
@@ -113,7 +113,7 @@ async function customLogging() {
 async function silentLogging() {
   console.log("\n🔇 Example 5: Silent Logging\n");
 
-  const client = new ProxyCheckClient({
+  const client = new ProxyCheck({
     apiKey: process.env.PROXYCHECK_API_KEY || "your-api-key-here",
     logging: {
       level: "silent",
@@ -121,7 +121,7 @@ async function silentLogging() {
   });
 
   try {
-    const result = await client.check.isVPN("8.8.8.8");
+    const result = await client.isVPN("8.8.8.8");
     console.log("Is VPN:", result);
     console.log("(No logging output should appear above this line)");
   } catch (error) {
@@ -133,7 +133,7 @@ async function silentLogging() {
 async function warningErrorLogging() {
   console.log("\n⚠️ Example 6: Warning/Error Only Logging\n");
 
-  const client = new ProxyCheckClient({
+  const client = new ProxyCheck({
     apiKey: process.env.PROXYCHECK_API_KEY || "your-api-key-here",
     logging: {
       level: "warn",
@@ -144,10 +144,10 @@ async function warningErrorLogging() {
 
   try {
     // This should only show warnings and errors, not info/debug
-    await client.check.checkAddress("8.8.8.8");
+    await client.check("8.8.8.8");
 
     // Force an error to see error logging
-    await client.check.checkAddress("invalid-address");
+    await client.check("invalid-address");
   } catch (_error) {
     console.log("Caught expected error (this is normal for the demo)");
   }

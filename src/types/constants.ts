@@ -2,6 +2,8 @@
  * ProxyCheck SDK Constants
  */
 
+import { VERSION } from "../version";
+
 /**
  * API Endpoints
  */
@@ -21,7 +23,7 @@ export const DEFAULTS = {
   RETRIES: 3,
   RETRY_DELAY: 1000, // 1 second
   TLS_SECURITY: true,
-  USER_AGENT: "proxycheck-sdk/0.9.0",
+  USER_AGENT: `proxycheck-sdk/${VERSION}`,
 } as const;
 
 /**

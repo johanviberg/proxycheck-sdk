@@ -24,7 +24,14 @@
       "recommended": true,
       "complexity": {
         "noBannedTypes": "error",
+        "noExcessiveCognitiveComplexity": {
+          "level": "error",
+          "options": {
+            "maxAllowedComplexity": 15
+          }
+        },
         "noExtraBooleanCast": "error",
+        "noForEach": "warn",
         "noAdjacentSpacesInRegex": "error",
         "noUselessCatch": "error",
         "noUselessConstructor": "error",
@@ -32,11 +39,16 @@
         "noUselessLabel": "error",
         "noUselessLoneBlockStatements": "error",
         "noUselessRename": "error",
+        "noUselessStringConcat": "error",
+        "noUselessSwitchCase": "error",
         "noUselessTernary": "error",
         "noUselessThisAlias": "error",
         "noUselessTypeConstraint": "error",
+        "noUselessUndefinedInitialization": "error",
         "noVoid": "error",
         "useArrowFunction": "error",
+        "useDateNow": "warn",
+        "useFlatMap": "warn",
         "useLiteralKeys": "error",
         "useOptionalChain": "error",
         "useRegexLiterals": "error",
@@ -303,6 +315,26 @@
           "suspicious": {
             "noExplicitAny": "off"
           },
+          "complexity": {
+            "useLiteralKeys": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/response/status-handler.ts", "**/response/interceptor.ts", "**/errors/handler.ts"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "useLiteralKeys": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/utils/error.ts", "**/errors/index.ts"],
+      "linter": {
+        "rules": {
           "complexity": {
             "useLiteralKeys": "off"
           }

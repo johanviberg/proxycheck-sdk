@@ -12,6 +12,7 @@ import { runCountryFilteringExamples } from "./country-filtering";
 import { runEnterpriseSecurityExamples } from "./enterprise-security";
 import { runErrorHandlingExamples } from "./error-handling";
 import { runListManagementExamples } from "./list-management";
+import { runLoggingExamples } from "./logging-example";
 import { runRealtimeMonitoringExamples } from "./realtime-monitoring";
 import { runRulesManagementExamples } from "./rules-management";
 import { runStatisticsMonitoringExamples } from "./statistics-monitoring";
@@ -55,6 +56,11 @@ async function main() {
       name: "List Management Examples",
       runner: runListManagementExamples,
       description: "Whitelist and blacklist management",
+    },
+    {
+      name: "Logging Examples",
+      runner: runLoggingExamples,
+      description: "Various logging configurations and outputs",
     },
     {
       name: "Advanced Configuration Examples",

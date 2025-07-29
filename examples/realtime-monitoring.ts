@@ -6,11 +6,11 @@
  */
 
 import { EventEmitter } from "events";
-import { ProxyCheckClient } from "../src";
+import { ProxyCheck } from "../src";
 
 // Event-driven monitoring system
 class ProxyCheckMonitor extends EventEmitter {
-  private client: ProxyCheckClient;
+  private client: ProxyCheck;
   private monitoringActive = false;
   private checkQueue: Array<{ address: string; timestamp: number; id: string }> = [];
   private stats = {
@@ -22,7 +22,7 @@ class ProxyCheckMonitor extends EventEmitter {
 
   constructor(apiKey: string) {
     super();
-    this.client = new ProxyCheckClient({
+    this.client = new ProxyCheck({
       apiKey,
       logging: {
         level: "warn",
@@ -110,10 +110,9 @@ class ProxyCheckMonitor extends EventEmitter {
     const startTime = Date.now();
 
     try {
-      const result = await this.client.check.checkAddress(address, {
-        vpnDetection: 2,
-        riskData: 2,
-        asnData: true,
+      const result = await this.client.check(address, {
+        detection: { mode: "comprehensive" },
+        enrich: { risk: "detailed", network: true },
       });
 
       const endTime = Date.now();
@@ -298,7 +297,7 @@ async function realtimeMonitoringExamples() {
 async function streamProcessingExample() {
   console.log("5. Stream Processing Simulation...");
 
-  const client = new ProxyCheckClient({
+  const client = new ProxyCheck({
     apiKey: process.env.PROXYCHECK_API_KEY || "your-api-key-here",
     logging: { level: "error" },
   });

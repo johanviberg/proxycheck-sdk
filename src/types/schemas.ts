@@ -129,3 +129,32 @@ export const StatsOptionsSchema = z.object({
   limit: z.number().positive().max(1000).optional(),
   offset: z.number().nonnegative().optional(),
 });
+
+// Semantic configuration schemas
+export const DetectionModeSchema = z.enum(["proxy", "vpn", "both", "comprehensive"]);
+export const RiskDetailLevelSchema = z.union([
+  z.literal(false),
+  z.literal("basic"),
+  z.literal("detailed"),
+]);
+
+export const SemanticCheckOptionsSchema = z.object({
+  detection: z
+    .object({
+      mode: DetectionModeSchema.optional(),
+    })
+    .optional(),
+  enrich: z
+    .object({
+      risk: RiskDetailLevelSchema.optional(),
+      location: z.boolean().optional(),
+      network: z.boolean().optional(),
+      lastSeen: z.boolean().optional(),
+      port: z.boolean().optional(),
+    })
+    .optional(),
+  timeRange: z.number().min(1).max(365).optional(),
+  tag: z.string().optional(),
+  allowedCountries: z.array(z.string()).optional(),
+  blockedCountries: z.array(z.string()).optional(),
+});

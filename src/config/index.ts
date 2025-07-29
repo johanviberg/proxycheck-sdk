@@ -10,6 +10,9 @@ import { DEFAULTS } from "../types/constants";
 import { ClientConfigSchema, ProxyCheckOptionsSchema } from "../types/schemas";
 import { stripUndefined } from "../utils/object";
 
+// Export semantic configuration utilities
+export * from "./semantic";
+
 /**
  * Query parameters interface
  */

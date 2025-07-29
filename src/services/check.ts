@@ -13,7 +13,9 @@ import { ProxyCheckValidationError } from "../errors";
 import type { AddressCheckResult, CheckResponse, ProxyCheckOptions } from "../types";
 import { API_ENDPOINTS } from "../types/constants";
 import { ProxyCheckOptionsSchema } from "../types/schemas";
+import { ensureError } from "../utils/error";
 import { stripUndefined } from "../utils/object";
+import { extractZodErrors } from "../utils/validation";
 import { BaseService } from "./base";
 
 /**
@@ -138,7 +140,8 @@ export class CheckService extends BaseService {
       return this.processResponse(response);
     } catch (error) {
       const duration = Date.now() - startTime;
-      this.logger.error("Address check failed", error instanceof Error ? error : undefined, {
+      const err = ensureError(error);
+      this.logger.error("Address check failed", err, {
         operation: "checkAddresses",
         service: this.getServiceName(),
         addressCount,
@@ -218,14 +221,24 @@ export class CheckService extends BaseService {
     try {
       const parsed = ProxyCheckOptionsSchema.parse(options) as any;
       return stripUndefined(parsed) as ProxyCheckOptions;
-    } catch (_error) {
-      throw new ProxyCheckValidationError("Invalid options provided", "options", options);
+    } catch (error) {
+      // Extract and log validation errors
+      const validationErrors = extractZodErrors(error, this.logger);
+
+      throw new ProxyCheckValidationError(
+        "Invalid options provided",
+        "options",
+        options,
+        validationErrors,
+        error,
+      );
     }
   }
 
   /**
    * Add blocking logic for single address checks
    */
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Required for comprehensive blocking logic
   private addBlockingLogic(
     response: CheckResponse,
     address: string,

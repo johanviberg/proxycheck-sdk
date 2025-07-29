@@ -7,6 +7,7 @@ import type { StatsOptions, StatsResponse } from "../types";
 import { API_ENDPOINTS } from "../types/constants";
 import { StatsOptionsSchema } from "../types/schemas";
 import { stripUndefined } from "../utils/object";
+import { extractZodErrors } from "../utils/validation";
 import { BaseService } from "./base";
 
 /**
@@ -207,8 +208,17 @@ export class StatsService extends BaseService {
     try {
       const parsed = StatsOptionsSchema.parse(options) as any;
       return stripUndefined(parsed) as StatsOptions;
-    } catch (_error) {
-      throw new ProxyCheckValidationError("Invalid stats options provided", "options", options);
+    } catch (error) {
+      // Extract and log validation errors
+      const validationErrors = extractZodErrors(error, this.logger);
+
+      throw new ProxyCheckValidationError(
+        "Invalid stats options provided",
+        "options",
+        options,
+        validationErrors,
+        error,
+      );
     }
   }
 }

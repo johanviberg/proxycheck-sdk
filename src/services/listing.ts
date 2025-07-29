@@ -7,6 +7,7 @@ import type { ListOptions, ListResponse } from "../types";
 import { API_ENDPOINTS } from "../types/constants";
 import { ListOptionsSchema } from "../types/schemas";
 import { stripUndefined } from "../utils/object";
+import { extractZodErrors } from "../utils/validation";
 import { BaseService } from "./base";
 
 /**
@@ -231,8 +232,17 @@ export class ListingService extends BaseService {
     try {
       const parsed = ListOptionsSchema.parse(options) as any;
       return stripUndefined(parsed) as ListOptions;
-    } catch (_error) {
-      throw new ProxyCheckValidationError("Invalid list options provided", "options", options);
+    } catch (error) {
+      // Extract and log validation errors
+      const validationErrors = extractZodErrors(error, this.logger);
+
+      throw new ProxyCheckValidationError(
+        "Invalid list options provided",
+        "options",
+        options,
+        validationErrors,
+        error,
+      );
     }
   }
 }

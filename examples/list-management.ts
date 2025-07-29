@@ -2,12 +2,12 @@
  * List Management Examples
  *
  * This example demonstrates whitelist and blacklist management
- * for advanced IP address filtering.
+ * for advanced IP address filtering using the new API.
  */
 
-import { ProxyCheckClient } from "../src";
+import { ProxyCheck } from "../src";
 
-const client = new ProxyCheckClient({
+const client = new ProxyCheck({
   apiKey: process.env.PROXYCHECK_API_KEY || "your-api-key-here",
 });
 
@@ -28,53 +28,68 @@ async function whitelistManagementExample() {
   try {
     // 1. Add individual IPs to whitelist
     console.log("1. Adding individual IPs to whitelist...");
-    await client.listing.addToWhitelist(["192.168.1.1", "10.0.0.1"]);
-    console.log("   ✅ Added 192.168.1.1 and 10.0.0.1 to whitelist");
+    const addResult = await client.lists.whitelist.add(["192.168.1.1", "10.0.0.1"]);
+    console.log(`   ✅ Added IPs to whitelist (${addResult.message})`);
 
-    // 2. Add multiple IPs at once
-    console.log("\n2. Adding multiple IPs to whitelist...");
-    await client.listing.addToWhitelist(sampleIPs);
-    console.log(`   ✅ Added ${sampleIPs.length} IPs to whitelist`);
+    // 2. Add multiple IPs at once with options
+    console.log("\n2. Adding multiple IPs to whitelist with validation...");
+    const batchAddResult = await client.lists.whitelist.add(sampleIPs, {
+      validateBeforeAdd: true,
+      allowDuplicates: false,
+      notes: "Trusted DNS servers and private networks"
+    });
+    console.log(`   ✅ ${batchAddResult.message}`);
+    if (batchAddResult.added) {
+      console.log(`   Added: ${batchAddResult.added} entries`);
+    }
+    if (batchAddResult.skipped) {
+      console.log(`   Skipped: ${batchAddResult.skipped} duplicates`);
+    }
 
     // 3. Get current whitelist
     console.log("\n3. Retrieving current whitelist...");
-    const whitelist = await client.listing.getWhitelist();
+    const whitelistData = await client.lists.whitelist.get();
     console.log("   Current whitelist entries:");
-    if (Array.isArray(whitelist) && whitelist.length > 0) {
-      whitelist.forEach((ip, index) => {
-        console.log(`     ${index + 1}. ${ip}`);
+    if (whitelistData.entries && whitelistData.entries.length > 0) {
+      console.log(`   Total entries: ${whitelistData.count || whitelistData.entries.length}`);
+      whitelistData.entries.forEach((entry, index) => {
+        if (index < 10) { // Show first 10 entries
+          console.log(`     ${index + 1}. ${entry}`);
+        }
       });
+      if (whitelistData.entries.length > 10) {
+        console.log(`     ... and ${whitelistData.entries.length - 10} more`);
+      }
     } else {
-      console.log("     (No entries or unexpected format)");
-      console.log("     Raw response:", JSON.stringify(whitelist, null, 2));
+      console.log("     (No entries found)");
     }
 
     // 4. Remove specific IPs from whitelist
     console.log("\n4. Removing specific IPs from whitelist...");
-    await client.listing.removeFromWhitelist(["192.168.1.1"]);
-    console.log("   ✅ Removed 192.168.1.1 from whitelist");
+    const removeResult = await client.lists.whitelist.remove(["192.168.1.1"]);
+    console.log(`   ✅ ${removeResult.message}`);
+    if (removeResult.removed) {
+      console.log(`   Removed: ${removeResult.removed} entries`);
+    }
 
     // 5. Set entire whitelist (replace all)
-    console.log("\n5. Setting entire whitelist...");
+    console.log("\n5. Setting entire whitelist (replace all)...");
     const newWhitelist = ["8.8.8.8", "1.1.1.1", "10.0.0.0/8"];
-    await client.listing.setWhitelist(newWhitelist);
-    console.log(`   ✅ Set whitelist to: ${newWhitelist.join(", ")}`);
+    const setResult = await client.lists.whitelist.set(newWhitelist);
+    console.log(`   ✅ ${setResult.message}`);
+    console.log(`   New whitelist has ${setResult.count || newWhitelist.length} entries`);
 
-    // 6. Verify changes
-    console.log("\n6. Verifying whitelist changes...");
-    const updatedWhitelist = await client.listing.getWhitelist();
-    console.log("   Updated whitelist:");
-    if (Array.isArray(updatedWhitelist)) {
-      updatedWhitelist.forEach((ip, index) => {
-        console.log(`     ${index + 1}. ${ip}`);
-      });
-    } else {
-      console.log("     Raw response:", JSON.stringify(updatedWhitelist, null, 2));
-    }
+    // 6. Clear whitelist
+    console.log("\n6. Clearing whitelist...");
+    const clearResult = await client.lists.whitelist.clear();
+    console.log(`   ✅ ${clearResult.message}`);
   } catch (error) {
-    console.error("Whitelist management failed:", error.message);
-    if (error.response) {
-      console.error("API Response:", error.response);
+    console.error("Whitelist management failed:", error);
+    if (error instanceof Error) {
+      console.error("Error message:", error.message);
+      if ("code" in error) {
+        console.error("Error code:", error.code);
+      }
     }
   }
 }
@@ -85,48 +100,64 @@ async function blacklistManagementExample() {
   try {
     // 1. Add suspicious IPs to blacklist
     console.log("1. Adding suspicious IPs to blacklist...");
-    await client.listing.addToBlacklist(suspiciousIPs);
-    console.log(`   ✅ Added ${suspiciousIPs.length} suspicious IPs to blacklist`);
+    const addResult = await client.lists.blacklist.add(suspiciousIPs, {
+      notes: "Suspicious activity detected",
+      validateBeforeAdd: true
+    });
+    console.log(`   ✅ ${addResult.message}`);
+    if (addResult.added) {
+      console.log(`   Added: ${addResult.added} IPs to blacklist`);
+    }
 
     // 2. Get current blacklist
     console.log("\n2. Retrieving current blacklist...");
-    const blacklist = await client.listing.getBlacklist();
+    const blacklistData = await client.lists.blacklist.get();
     console.log("   Current blacklist entries:");
-    if (Array.isArray(blacklist) && blacklist.length > 0) {
-      blacklist.forEach((ip, index) => {
-        console.log(`     ${index + 1}. ${ip}`);
+    if (blacklistData.entries && blacklistData.entries.length > 0) {
+      console.log(`   Total entries: ${blacklistData.count || blacklistData.entries.length}`);
+      blacklistData.entries.forEach((entry, index) => {
+        if (index < 10) { // Show first 10 entries
+          console.log(`     ${index + 1}. ${entry}`);
+        }
       });
+      if (blacklistData.entries.length > 10) {
+        console.log(`     ... and ${blacklistData.entries.length - 10} more`);
+      }
     } else {
-      console.log("     (No entries or unexpected format)");
-      console.log("     Raw response:", JSON.stringify(blacklist, null, 2));
+      console.log("     (No entries found)");
+      console.log("     Raw response:", JSON.stringify(blacklistData, null, 2));
     }
 
     // 3. Add additional IPs with CIDR notation
     console.log("\n3. Adding CIDR ranges to blacklist...");
     const cidrRanges = ["192.168.100.0/24", "172.16.0.0/16"];
-    await client.listing.addToBlacklist(cidrRanges);
-    console.log(`   ✅ Added CIDR ranges: ${cidrRanges.join(", ")}`);
+    const cidrResult = await client.lists.blacklist.add(cidrRanges);
+    console.log(`   ✅ ${cidrResult.message}`);
 
     // 4. Remove specific IP from blacklist
     console.log("\n4. Removing specific IP from blacklist...");
-    await client.listing.removeFromBlacklist(["1.2.3.4"]);
-    console.log("   ✅ Removed 1.2.3.4 from blacklist");
+    const removeResult = await client.lists.blacklist.remove(["1.2.3.4"]);
+    console.log(`   ✅ ${removeResult.message}`);
 
     // 5. Verify blacklist state
     console.log("\n5. Verifying blacklist state...");
-    const updatedBlacklist = await client.listing.getBlacklist();
+    const updatedBlacklist = await client.lists.blacklist.get();
     console.log("   Updated blacklist:");
-    if (Array.isArray(updatedBlacklist)) {
-      updatedBlacklist.forEach((ip, index) => {
-        console.log(`     ${index + 1}. ${ip}`);
+    if (updatedBlacklist.entries && updatedBlacklist.entries.length > 0) {
+      console.log(`   Total entries: ${updatedBlacklist.count || updatedBlacklist.entries.length}`);
+      updatedBlacklist.entries.slice(0, 10).forEach((entry, index) => {
+        console.log(`     ${index + 1}. ${entry}`);
       });
+      if (updatedBlacklist.entries.length > 10) {
+        console.log(`     ... and ${updatedBlacklist.entries.length - 10} more`);
+      }
     } else {
-      console.log("     Raw response:", JSON.stringify(updatedBlacklist, null, 2));
+      console.log("     (No entries found)");
     }
   } catch (error) {
-    console.error("Blacklist management failed:", error.message);
-    if (error.response) {
-      console.error("API Response:", error.response);
+    console.error("Blacklist management failed:", error);
+    if (error instanceof Error) {
+      console.error("Error message:", error.message);
     }
   }
 }
@@ -137,13 +168,13 @@ async function listOperationsExample() {
   try {
     // 1. Backup current lists
     console.log("1. Backing up current lists...");
-    const whitelistBackup = await client.listing.getWhitelist();
-    const blacklistBackup = await client.listing.getBlacklist();
+    const whitelistBackup = await client.lists.whitelist.get();
+    const blacklistBackup = await client.lists.blacklist.get();
     console.log(
-      `   ✅ Backed up ${Array.isArray(whitelistBackup) ? whitelistBackup.length : 0} whitelist entries`,
+      `   ✅ Backed up ${whitelistBackup.entries?.length || 0} whitelist entries`,
     );
     console.log(
-      `   ✅ Backed up ${Array.isArray(blacklistBackup) ? blacklistBackup.length : 0} blacklist entries`,
+      `   ✅ Backed up ${blacklistBackup.entries?.length || 0} blacklist entries`,
     );
 
     // 2. Bulk operations
@@ -153,30 +184,32 @@ async function listOperationsExample() {
     const bulkWhitelistAdditions = ["203.0.113.0/24", "198.51.100.0/24"];
     const bulkBlacklistAdditions = ["233.252.0.0/24", "224.0.0.0/24"];
 
-    await Promise.all([
-      client.listing.addToWhitelist(bulkWhitelistAdditions),
-      client.listing.addToBlacklist(bulkBlacklistAdditions),
+    const [whitelistResult, blacklistResult] = await Promise.all([
+      client.lists.whitelist.add(bulkWhitelistAdditions),
+      client.lists.blacklist.add(bulkBlacklistAdditions),
     ]);
 
-    console.log("   ✅ Bulk additions completed");
+    console.log(`   ✅ Whitelist: ${whitelistResult.message}`);
+    console.log(`   ✅ Blacklist: ${blacklistResult.message}`);
 
     // 3. List comparison and analysis
     console.log("\n3. Analyzing list contents...");
 
-    const currentWhitelist = await client.listing.getWhitelist();
-    const currentBlacklist = await client.listing.getBlacklist();
+    const currentWhitelist = await client.lists.whitelist.get();
+    const currentBlacklist = await client.lists.blacklist.get();
 
     console.log("   List Statistics:");
     console.log(
-      `     Whitelist entries: ${Array.isArray(currentWhitelist) ? currentWhitelist.length : 0}`,
+      `     Whitelist entries: ${currentWhitelist.entries?.length || 0}`,
     );
     console.log(
-      `     Blacklist entries: ${Array.isArray(currentBlacklist) ? currentBlacklist.length : 0}`,
+      `     Blacklist entries: ${currentBlacklist.entries?.length || 0}`,
     );
 
     // Check for overlaps (IPs in both lists)
-    if (Array.isArray(currentWhitelist) && Array.isArray(currentBlacklist)) {
-      const overlaps = currentWhitelist.filter((ip) => currentBlacklist.includes(ip));
+    if (currentWhitelist.entries && currentBlacklist.entries) {
+      const whitelistSet = new Set(currentWhitelist.entries);
+      const overlaps = currentBlacklist.entries.filter(ip => whitelistSet.has(ip));
       if (overlaps.length > 0) {
         console.log(`   ⚠️ Overlapping entries found: ${overlaps.join(", ")}`);
       } else {
@@ -189,14 +222,18 @@ async function listOperationsExample() {
 
     // Only add to whitelist if not already in blacklist
     const candidateIP = "203.0.113.1";
-    if (Array.isArray(currentBlacklist) && !currentBlacklist.includes(candidateIP)) {
-      await client.listing.addToWhitelist([candidateIP]);
+    const blacklistSet = new Set(currentBlacklist.entries || []);
+    if (!blacklistSet.has(candidateIP)) {
+      await client.lists.whitelist.add([candidateIP]);
       console.log(`   ✅ Added ${candidateIP} to whitelist (not in blacklist)`);
     } else {
       console.log(`   ⚠️ Skipped adding ${candidateIP} (already in blacklist)`);
     }
   } catch (error) {
-    console.error("Advanced list operations failed:", error.message);
+    console.error("Advanced list operations failed:", error);
+    if (error instanceof Error) {
+      console.error("Error message:", error.message);
+    }
   }
 }
 
@@ -207,19 +244,20 @@ async function listMaintenanceExample() {
     // 1. List cleanup - remove duplicates and invalid entries
     console.log("1. Performing list cleanup...");
 
-    const whitelist = await client.listing.getWhitelist();
-    if (Array.isArray(whitelist)) {
+    const whitelistData = await client.lists.whitelist.get();
+    if (whitelistData.entries && whitelistData.entries.length > 0) {
       // Remove duplicates and clean up
-      const cleanWhitelist = [...new Set(whitelist)].filter((ip) => {
+      const cleanWhitelist = [...new Set(whitelistData.entries)].filter((ip) => {
         // Basic validation - remove obviously invalid entries
         return ip && typeof ip === "string" && ip.trim().length > 0;
       });
 
-      if (cleanWhitelist.length !== whitelist.length) {
-        await client.listing.setWhitelist(cleanWhitelist);
+      if (cleanWhitelist.length !== whitelistData.entries.length) {
+        const setResult = await client.lists.whitelist.set(cleanWhitelist);
         console.log(
-          `   ✅ Cleaned whitelist: ${whitelist.length} → ${cleanWhitelist.length} entries`,
+          `   ✅ Cleaned whitelist: ${whitelistData.entries.length} → ${cleanWhitelist.length} entries`,
         );
+        console.log(`   ${setResult.message}`);
       } else {
         console.log("   ✅ Whitelist is already clean");
       }
@@ -238,14 +276,14 @@ async function listMaintenanceExample() {
     // 3. List validation
     console.log("\n3. List validation...");
 
-    const blacklist = await client.listing.getBlacklist();
-    if (Array.isArray(blacklist)) {
+    const blacklistData = await client.lists.blacklist.get();
+    if (blacklistData.entries && blacklistData.entries.length > 0) {
       console.log("   Validating blacklist entries...");
 
-      const validEntries = [];
-      const invalidEntries = [];
+      const validEntries: string[] = [];
+      const invalidEntries: string[] = [];
 
-      for (const entry of blacklist.slice(0, 5)) {
+      for (const entry of blacklistData.entries.slice(0, 5)) {
         // Check first 5 for demo
         // Basic IP/CIDR validation
         const isValid =
@@ -270,25 +308,27 @@ async function listMaintenanceExample() {
     // 4. List export/import simulation
     console.log("\n4. List export/import simulation...");
 
+    const whitelistExport = await client.lists.whitelist.get();
+    const blacklistExport = await client.lists.blacklist.get();
+    
     const exportData = {
       timestamp: new Date().toISOString(),
-      whitelist: await client.listing.getWhitelist(),
-      blacklist: await client.listing.getBlacklist(),
+      whitelist: whitelistExport.entries || [],
+      blacklist: blacklistExport.entries || [],
     };
 
     console.log("   📤 Exported lists to backup:");
     console.log(`     Timestamp: ${exportData.timestamp}`);
-    console.log(
-      `     Whitelist entries: ${Array.isArray(exportData.whitelist) ? exportData.whitelist.length : 0}`,
-    );
-    console.log(
-      `     Blacklist entries: ${Array.isArray(exportData.blacklist) ? exportData.blacklist.length : 0}`,
-    );
+    console.log(`     Whitelist entries: ${exportData.whitelist.length}`);
+    console.log(`     Blacklist entries: ${exportData.blacklist.length}`);
 
     // In a real application, you would save this to a file or database
     console.log("     💡 Backup data ready for storage");
   } catch (error) {
-    console.error("List maintenance failed:", error.message);
+    console.error("List maintenance failed:", error);
+    if (error instanceof Error) {
+      console.error("Error message:", error.message);
+    }
   }
 }
 
@@ -303,20 +343,22 @@ async function listTestingExample() {
 
     // Check IP normally first
     console.log(`\n   Testing IP: ${testIP}`);
-    const normalResult = await client.check.checkAddress(testIP);
-    console.log(
-      `   Normal check result: ${JSON.stringify(normalResult[testIP]?.proxy || "unknown")}`,
-    );
+    const normalResult = await client.check(testIP);
+    console.log(`   Normal check result:`);
+    console.log(`     Is Proxy: ${normalResult.isProxy}`);
+    console.log(`     Is VPN: ${normalResult.isVPN}`);
+    console.log(`     Risk Level: ${normalResult.risk.level}`);
 
     // Add to whitelist and test again
-    await client.listing.addToWhitelist([testIP]);
+    await client.lists.whitelist.add([testIP]);
     console.log(`   ✅ Added ${testIP} to whitelist`);
 
     // Check again (whitelisted IPs might be treated differently)
-    const whitelistedResult = await client.check.checkAddress(testIP);
-    console.log(
-      `   Whitelisted check result: ${JSON.stringify(whitelistedResult[testIP]?.proxy || "unknown")}`,
-    );
+    const whitelistedResult = await client.check(testIP);
+    console.log(`   Whitelisted check result:`);
+    console.log(`     Is Proxy: ${whitelistedResult.isProxy}`);
+    console.log(`     Is VPN: ${whitelistedResult.isVPN}`);
+    console.log(`     Risk Level: ${whitelistedResult.risk.level}`);
 
     // Test multiple IPs with different list statuses
     console.log("\n2. Testing multiple IPs with different list statuses...");
@@ -324,8 +366,8 @@ async function listTestingExample() {
     const testIPs = ["8.8.8.8", "1.1.1.1", "1.2.3.4"];
 
     // Ensure different list statuses
-    await client.listing.addToWhitelist(["8.8.8.8"]);
-    await client.listing.addToBlacklist(["1.2.3.4"]);
+    await client.lists.whitelist.add(["8.8.8.8"]);
+    await client.lists.blacklist.add(["1.2.3.4"]);
     // 1.1.1.1 will be neutral
 
     console.log("   List status setup:");
@@ -333,29 +375,28 @@ async function listTestingExample() {
     console.log("     1.1.1.1: Neutral");
     console.log("     1.2.3.4: Blacklisted");
 
-    const batchResult = await client.check.checkAddresses(testIPs, {
-      riskData: 1,
+    const batchResult = await client.checkBatch(testIPs, {
+      enrich: {
+        risk: "basic",
+      },
     });
 
     console.log("\n   Batch check results:");
-    for (const ip of testIPs) {
-      const result = batchResult[ip];
-      if (result && typeof result === "object") {
-        console.log(
-          `     ${ip}: proxy=${result.proxy}, risk=${result.risk !== undefined ? `${result.risk}%` : "N/A"}`,
-        );
-      }
+    for (const [ip, result] of batchResult) {
+      console.log(
+        `     ${ip}: proxy=${result.isProxy}, vpn=${result.isVPN}, risk=${result.risk.level} (${result.risk.score}%)`,
+      );
     }
   } catch (error) {
-    console.error("List testing failed:", error.message);
-    if (error.response) {
-      console.error("API Response:", error.response);
+    console.error("List testing failed:", error);
+    if (error instanceof Error) {
+      console.error("Error message:", error.message);
     }
   }
 }
 
 async function main() {
-  console.log("🚀 ProxyCheck.io TypeScript SDK - List Management Examples\n");
+  console.log("🚀 ProxyCheck.io TypeScript SDK - List Management Examples (v0.9.2)\n");
 
   try {
     await whitelistManagementExample();

@@ -1,11 +1,12 @@
 {
   "name": "proxycheck-sdk",
-  "version": "0.9.0",
+  "version": "0.9.2",
   "description": "Modern TypeScript SDK for the ProxyCheck.io V2 API - Detect proxies, VPNs, and manage IP reputation",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "type": "commonjs",
+  "sideEffects": false,
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -96,6 +97,7 @@
     "release": "pnpm run prepublishOnly && npm publish",
     "release:dry": "pnpm run prepublishOnly && npm publish --dry-run",
     "test": "jest",
+    "benchmark": "ts-node tests/performance/benchmark.ts",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:ci": "jest --ci --coverage --maxWorkers=2",
@@ -118,7 +120,8 @@
     "prepare": "scripts/install-hooks.sh || true",
     "hooks:install": "lefthook install",
     "hooks:uninstall": "lefthook uninstall",
-    "hooks:run": "lefthook run"
+    "hooks:run": "lefthook run",
+    "knip": "knip"
   },
   "keywords": [
     "proxycheck",
@@ -170,10 +173,11 @@
     "@rollup/plugin-node-resolve": "^16.0.1",
     "@rollup/plugin-typescript": "^12.1.4",
     "@types/jest": "^30.0.0",
-    "@types/node": "^24.0.10",
+    "@types/node": "^24.0.14",
     "jest": "^30.0.4",
+    "knip": "^5.61.3",
     "rimraf": "^6.0.1",
-    "rollup": "^4.44.2",
+    "rollup": "^4.45.1",
     "rollup-plugin-dts": "^6.2.1",
     "ts-jest": "^29.4.0",
     "tslib": "^2.8.1",
@@ -183,7 +187,7 @@
   },
   "dependencies": {
     "axios": "^1.10.0",
-    "zod": "^3.25.75"
+    "zod": "^3.25.76"
   },
   "size-limit": [
     {

@@ -50,13 +50,14 @@ echo "---------------------------------------"
 NODE_VERSION=$(node --version)
 print_status "info" "Current Node.js version: $NODE_VERSION"
 
-# Check minimum version requirement
+# Check minimum version requirement (>=18.12.0)
 NODE_MAJOR=$(echo $NODE_VERSION | cut -d. -f1 | sed 's/v//')
-if [ "$NODE_MAJOR" -lt 14 ]; then
-    print_status "error" "Node.js version must be >= 14.0.0"
+NODE_MINOR=$(echo $NODE_VERSION | cut -d. -f2)
+if [ "$NODE_MAJOR" -lt 18 ] || ([ "$NODE_MAJOR" -eq 18 ] && [ "$NODE_MINOR" -lt 12 ]); then
+    print_status "error" "Node.js version must be >= 18.12.0"
     exit 1
 else
-    print_status "success" "Node.js version meets requirements"
+    print_status "success" "Node.js version meets requirements (>=18.12.0)"
 fi
 
 # Test 2: CommonJS Import
@@ -126,21 +127,7 @@ else
     print_status "warning" "Security vulnerabilities detected"
 fi
 
-# Test 8: Deno Compatibility (if Deno is available)
-echo ""
-echo "📦 Testing Deno Compatibility"
-echo "----------------------------"
-
-if command -v deno &> /dev/null; then
-    print_status "info" "Deno detected, running compatibility check"
-    if deno run --allow-env tests/compatibility/deno-example.ts; then
-        print_status "success" "Deno compatibility test passed"
-    else
-        print_status "warning" "Deno compatibility test failed"
-    fi
-else
-    print_status "info" "Deno not available, skipping Deno tests"
-fi
+# Note: Deno support removed as this is a Node.js-only SDK
 
 # Test 9: Bundle Analysis
 echo ""
@@ -184,9 +171,9 @@ print_status "success" "All compatibility tests passed!"
 print_status "info" "Package is ready for publishing"
 
 echo ""
-echo "✅ Node.js versions: 14.x, 16.x, 18.x, 20.x, 22.x"
+echo "✅ Node.js versions: 18.12.0+, 20.x, 22.x"
 echo "✅ Module systems: CommonJS, ESM"
-echo "✅ TypeScript compatibility: 4.7+ to latest"
-echo "✅ Environments: Node.js, Browser, Deno"
+echo "✅ TypeScript compatibility: 4.5+ to latest"
+echo "✅ Environment: Node.js only (server-side)"
 echo "✅ Security: No vulnerabilities"
 echo "✅ Bundle size: Optimized"

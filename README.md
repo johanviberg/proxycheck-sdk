@@ -20,17 +20,25 @@ Experience the SDK features with a live, interactive demo site. Test IP address 
 
 ## Features
 
-- 🚀 **Modern TypeScript**: Full type safety with intelligent IntelliSense
-- 🔄 **Dual Module Support**: Works with both CommonJS and ESM
-- 🛡️ **Built-in Error Handling**: Comprehensive error hierarchy with detailed context
-- 🔁 **Automatic Retries**: Smart retry logic with exponential backoff
-- ⚡ **Rate Limit Handling**: Automatic rate limit detection and retry delays
-- 🎯 **Batch Operations**: Efficiently check multiple IPs/emails at once
-- 📊 **Complete API Coverage**: All ProxyCheck.io endpoints supported
-- 🧪 **Thoroughly Tested**: Comprehensive test suite with >90% coverage
-- 📚 **Well Documented**: Complete API documentation and examples
-- 🔒 **Security**: Regular security scanning with CodeQL and dependency audits
-- 🏗️ **CI/CD**: Automated testing, building, and publishing pipeline
+### 🎯 **Developer Experience First**
+- **Boolean Returns**: No more `proxy === "yes"` checks - use `isProxy: true`
+- **Semantic Options**: Replace cryptic numbers with meaningful strings (`level: 'enhanced'` not `vpnDetection: 2`)
+- **Single Entry API**: Direct `client.check()` instead of `client.check.checkAddress()`
+- **Map-based Batch Results**: O(1) lookups with `results.get('8.8.8.8')` instead of object filtering
+- **Enhanced Errors**: Detailed suggestions and recovery strategies included
+
+### 🚀 **Core Features**
+- **Modern TypeScript**: Full type safety with intelligent IntelliSense
+- **Dual Module Support**: Works with both CommonJS and ESM
+- **Built-in Error Handling**: Comprehensive error hierarchy with detailed context
+- **Automatic Retries**: Smart retry logic with exponential backoff
+- **Rate Limit Handling**: Automatic rate limit detection and retry delays
+- **Batch Operations**: Efficiently check multiple IPs/emails at once
+- **Complete API Coverage**: All ProxyCheck.io endpoints supported
+- **Thoroughly Tested**: Comprehensive test suite with >90% coverage
+- **Well Documented**: Complete API documentation and examples
+- **Security**: Regular security scanning with CodeQL and dependency audits
+- **CI/CD**: Automated testing, building, and publishing pipeline
 
 ## Quick Start
 
@@ -56,24 +64,30 @@ pnpm add proxycheck-sdk
 ### Basic Usage
 
 ```typescript
-import { ProxyCheckClient } from 'proxycheck-sdk';
+import { ProxyCheck } from 'proxycheck-sdk';
 
 // Initialize the client
-const client = new ProxyCheckClient({
+const client = new ProxyCheck({
   apiKey: 'your-api-key-here'
 });
 
-// Check a single IP address
-const result = await client.check.checkAddress('8.8.8.8');
-console.log(result);
+// Check a single IP address - returns boolean values for better DX
+const result = await client.check('8.8.8.8');
+console.log('Is proxy:', result.isProxy);  // true/false instead of "yes"/"no"
+console.log('Is VPN:', result.isVPN);      // true/false
+console.log('Risk level:', result.risk.level); // "low", "medium", "high", "critical"
 
-// Check if an IP is a proxy/VPN
-const isProxy = await client.check.isProxy('1.2.3.4');
-console.log(`Is proxy: ${isProxy}`);
+// Convenience methods for quick checks
+const isProxy = await client.isProxy('1.2.3.4');
+const isVPN = await client.isVPN('1.2.3.4');
+const isSuspicious = await client.isSuspicious('1.2.3.4'); // proxy OR VPN OR high risk
 
 // Check if an email is disposable
-const isDisposable = await client.check.isDisposableEmail('test@tempmail.org');
+const isDisposable = await client.isDisposableEmail('test@tempmail.org');
 console.log(`Is disposable: ${isDisposable}`);
+
+// Get risk level as string
+const riskLevel = await client.getRiskLevel('1.2.3.4'); // "low", "medium", "high", "critical"
 ```
 
 ## Configuration
@@ -94,14 +108,14 @@ export PROXYCHECK_TLS_SECURITY="true"
 ### Configuration Options
 
 ```typescript
-const client = new ProxyCheckClient({
+const client = new ProxyCheck({
   apiKey: 'your-api-key',           // Your ProxyCheck.io API key
   baseUrl: 'proxycheck.io',         // API base URL (default: 'proxycheck.io')
   timeout: 30000,                   // Request timeout in ms (default: 30000)
   retries: 3,                       // Number of retries (default: 3)
   retryDelay: 1000,                 // Initial retry delay in ms (default: 1000)
   tlsSecurity: true,                // Use HTTPS (default: true)
-  userAgent: 'proxycheck-sdk/0.9.0', // Custom user agent
+  userAgent: 'proxycheck-sdk/0.9.2', // Custom user agent
   logging: {                        // Optional logging configuration
     level: 'info',                  // Log level: 'debug' | 'info' | 'warn' | 'error' | 'silent'
     format: 'pretty',              // Log format: 'json' | 'pretty'
@@ -114,171 +128,234 @@ const client = new ProxyCheckClient({
 
 ## API Reference
 
-### Check Service
+### Core API Methods
 
-The Check Service provides IP address and email validation functionality.
+The new API provides a simplified, DX-focused interface with boolean returns and semantic options.
 
-#### Basic Checking
+#### Single Address Check
 
 ```typescript
-// Check single IP address
-const result = await client.check.checkAddress('8.8.8.8');
+// Check single IP address - returns CheckResult with boolean properties
+const result = await client.check('8.8.8.8');
+console.log(result.isProxy);    // boolean: true/false
+console.log(result.isVPN);      // boolean: true/false  
+console.log(result.risk.level); // string: "low" | "medium" | "high" | "critical"
+console.log(result.risk.score); // number: 0-100
 
-// Check multiple addresses at once
-const results = await client.check.checkAddresses(['8.8.8.8', 'test@example.com']);
-
-// Get detailed information with all features enabled
-const detailed = await client.check.getDetailedInfo('1.2.3.4', {
-  asnData: true,
-  riskData: 2,
-  vpnDetection: 3
+// With options
+const result = await client.check('1.2.3.4', {
+  // Semantic options for better DX
+  detection: { 
+    mode: 'vpn',  // 'proxy' | 'vpn' | 'both'
+    level: 'enhanced' // 'basic' | 'enhanced' | 'paranoid'
+  },
+  enrich: {
+    risk: 'detailed',    // 'basic' | 'detailed'
+    location: true,      // Include country/city data
+    network: true,       // Include ASN/ISP data
+    lastSeen: true,      // Include last seen data
+    port: true           // Include port scan data
+  }
 });
+```
+
+#### Batch Operations
+
+```typescript
+// Check multiple addresses - returns Map for O(1) lookup
+const addresses = ['8.8.8.8', '1.1.1.1', 'test@example.com'];
+const results = await client.checkBatch(addresses);
+
+// Access individual results efficiently
+const googleDNS = results.get('8.8.8.8');
+if (googleDNS?.isProxy) {
+  console.log('Google DNS is flagged as proxy');
+}
+
+// Iterate over all results
+for (const [address, result] of results) {
+  if (result.isSuspicious) {
+    console.log(`${address} is suspicious: ${result.risk.level} risk`);
+  }
+}
 ```
 
 #### Convenience Methods
 
 ```typescript
-// Quick proxy/VPN checks
-const isProxy = await client.check.isProxy('1.2.3.4');
-const isVPN = await client.check.isVPN('1.2.3.4');
+// Quick boolean checks - perfect for conditionals
+if (await client.isProxy('1.2.3.4')) {
+  // Block proxy access
+}
+
+if (await client.isVPN('1.2.3.4')) {
+  // Handle VPN detection
+}
+
+if (await client.isSuspicious('1.2.3.4')) {
+  // Triggers on: proxy OR VPN OR high risk
+  // Perfect for general security checks
+}
 
 // Email validation
-const isDisposable = await client.check.isDisposableEmail('test@tempmail.org');
+if (await client.isDisposableEmail('test@tempmail.org')) {
+  // Reject disposable email
+}
 
 // Risk assessment
-const riskScore = await client.check.getRiskScore('1.2.3.4');
+const riskLevel = await client.getRiskLevel('1.2.3.4'); 
+// Returns: "low" | "medium" | "high" | "critical"
 ```
 
-#### Advanced Options
+#### Advanced Options with Semantic API
 
 ```typescript
-const result = await client.check.checkAddress('1.2.3.4', {
-  // VPN Detection levels: 0=disabled, 1=basic, 2=enhanced, 3=paranoid
-  vpnDetection: 2,
+// Full semantic options for better developer experience
+const result = await client.check('1.2.3.4', {
+  // Detection configuration - no more cryptic numbers!
+  detection: { 
+    mode: 'both',          // 'proxy' | 'vpn' | 'both'
+    level: 'paranoid'      // 'basic' | 'enhanced' | 'paranoid'
+  },
   
-  // ASN and geolocation data
-  asnData: true,
+  // Data enrichment options
+  enrich: {
+    risk: 'detailed',      // 'basic' | 'detailed' 
+    location: true,        // Include geolocation
+    network: true,         // Include ASN/ISP
+    lastSeen: true,        // Include last detection
+    port: true            // Include open port scan
+  },
   
-  // Risk assessment: 0=disabled, 1=basic, 2=detailed
-  riskData: 2,
+  // Country filtering
+  countries: {
+    allowed: ['US', 'CA', 'GB'],  // Whitelist countries
+    blocked: ['CN', 'RU', 'KP']   // Blacklist countries
+  },
   
-  // Country restrictions
-  allowedCountries: ['US', 'CA'],
-  blockedCountries: ['CN', 'RU'],
+  // Analytics and privacy
+  analytics: {
+    tag: true,                    // Enable query tagging
+    customTag: 'signup-form'      // Custom tag for tracking
+  },
   
-  // Query tagging for analytics
-  queryTagging: true,
-  customTag: 'website-signup',
+  privacy: {
+    maskEmail: true               // Mask email addresses
+  },
   
-  // Email masking for privacy
-  maskAddress: true,
-  
-  // Days restrictor
-  dayRestrictor: 7
+  // Time-based filtering
+  timeRange: 7                    // Days to look back
 });
+
+// The response includes all requested data
+if (result.location) {
+  console.log(`Location: ${result.location.city}, ${result.location.country}`);
+}
+
+if (result.network) {
+  console.log(`ISP: ${result.network.provider}`);
+  console.log(`ASN: ${result.network.asn}`);
+}
 ```
 
-### Listing Service
+### Dashboard & List Management
 
-Manage whitelists and blacklists for your account.
+Access dashboard statistics and manage allow/deny lists through the simplified API.
 
-```typescript
-// Whitelist management
-await client.listing.addToWhitelist(['192.168.1.1', '10.0.0.1']);
-await client.listing.removeFromWhitelist(['192.168.1.1']);
-const whitelist = await client.listing.getWhitelist();
-await client.listing.setWhitelist(['192.168.1.1']); // Replace entire list
-await client.listing.clearWhitelist();
-
-// Blacklist management
-await client.listing.addToBlacklist(['1.2.3.4', '5.6.7.8']);
-await client.listing.removeFromBlacklist(['1.2.3.4']);
-const blacklist = await client.listing.getBlacklist();
-await client.listing.setBlacklist(['5.6.7.8']); // Replace entire list
-await client.listing.clearBlacklist();
-```
-
-### Rules Service
-
-Create and manage custom detection rules.
+#### Dashboard API
 
 ```typescript
-// Create a custom rule
-await client.rules.createRule('high_risk_countries', 
-  'country == "CN" OR country == "RU" OR risk > 80'
-);
+// Access dashboard through the client
+const usage = await client.dashboard.getUsage();
+console.log(`Queries today: ${usage.queriesToday}/${usage.dailyLimit}`);
+console.log(`Burst tokens: ${usage.burstTokensAvailable}`);
 
-// Test a rule
-const testResult = await client.rules.testRule('high_risk_countries');
-
-// List all rules
-const rules = await client.rules.listRules();
-
-// Update existing rule
-await client.rules.updateRule('high_risk_countries',
-  'country == "CN" OR country == "RU" OR risk > 75'
-);
-
-// Delete a rule
-await client.rules.deleteRule('high_risk_countries');
-```
-
-### Stats Service
-
-Retrieve usage statistics and export data.
-
-```typescript
 // Get recent detections
-const detections = await client.stats.getDetections(100);
+const detections = await client.dashboard.getDetections(100);
+for (const detection of detections) {
+  console.log(`Detection: ${detection.address}`);
+  console.log(`  Type: ${detection.detectionType}`);
+  console.log(`  Time: ${detection.timeFormatted}`);
+}
 
-// Get query logs
-const queries = await client.stats.getQueries(100);
+// Query analytics - returns summary statistics
+const queries = await client.dashboard.getQueries();
+console.log(`Total queries: ${queries.totalQueries}`);
+console.log(`Proxies detected: ${queries.proxies}`);
+console.log(`VPNs detected: ${queries.vpns}`);
 
-// Get query logs with pagination (convenience method)
-const queriesPaginated = await client.stats.getQueriesPaginated(2, 50); // page 2, 50 per page
-
-// Get usage statistics
-const usage = await client.stats.getUsage();
-
-// Export data
-const exportDetections = await client.stats.exportDetections({ limit: 1000 });
-const exportQueries = await client.stats.exportQueries({ limit: 500 });
-const exportUsage = await client.stats.exportUsage();
-
-// Get all stats at once
-const allStats = await client.stats.getAllStats();
+// Tag statistics
+const tags = await client.dashboard.getTags();
 ```
+
+#### List Management
+
+```typescript
+// Access lists through the client
+const lists = client.lists;
+
+// Whitelist operations - more intuitive API
+await lists.whitelist.add(['192.168.1.1', '10.0.0.1']);
+await lists.whitelist.remove(['192.168.1.1']);
+const allowed = await lists.whitelist.get();
+await lists.whitelist.set(['192.168.1.1']); // Replace entire list
+await lists.whitelist.clear();
+
+// Blacklist operations
+await lists.blacklist.add(['1.2.3.4', '5.6.7.8']);
+await lists.blacklist.remove(['1.2.3.4']);
+const blocked = await lists.blacklist.get();
+await lists.blacklist.set(['5.6.7.8']); // Replace entire list
+await lists.blacklist.clear();
+
+// Advanced list operations
+const stats = await lists.whitelist.getStatistics();
+const conflicts = await lists.findConflicts();
+```
+
 
 ## Error Handling
 
-The SDK provides comprehensive error handling with specific error types:
+The SDK provides enhanced error handling with detailed context and recovery suggestions:
 
 ```typescript
 import { 
   ProxyCheckError,
-  ProxyCheckAPIError,
-  ProxyCheckValidationError,
+  ProxyCheckConfigurationError,
+  ProxyCheckAuthError,
   ProxyCheckRateLimitError,
   ProxyCheckNetworkError,
-  ProxyCheckAuthenticationError,
-  ProxyCheckTimeoutError
+  ProxyCheckTimeoutError,
+  ProxyCheckDataError
 } from 'proxycheck-sdk';
 
 try {
-  const result = await client.check.checkAddress('invalid-ip');
+  const result = await client.check('invalid-ip');
 } catch (error) {
-  if (error instanceof ProxyCheckValidationError) {
+  if (error instanceof ProxyCheckDataError) {
     console.log('Validation error:', error.message);
     console.log('Field:', error.field);
-    console.log('Value:', error.value);
+    console.log('Suggestions:', error.suggestions);
+    // ["Check the data format and structure", "Ensure all required fields are present"]
   } else if (error instanceof ProxyCheckRateLimitError) {
-    console.log('Rate limited. Retry after:', error.retryAfter, 'seconds');
-    console.log('Remaining:', error.remaining);
-  } else if (error instanceof ProxyCheckAuthenticationError) {
-    console.log('Authentication error - check your API key');
-  } else if (error instanceof ProxyCheckNetworkError) {
-    console.log('Network error:', error.message);
+    console.log('Rate limited for:', error.getFormattedTimeUntilReset());
+    console.log('Retry after:', error.retryAfter, 'seconds');
+    console.log('Window resets at:', error.reset);
+    
+    // SDK automatically handles retries with proper delays
+    // Or manually wait:
+    await new Promise(resolve => setTimeout(resolve, error.getRetryDelay()));
+  } else if (error instanceof ProxyCheckAuthError) {
+    console.log('Auth error type:', error.authType); // 'missing' | 'invalid' | 'expired'
+    console.log('Suggestions:', error.suggestions);
+    // ["Verify your API key is correct", "Check for any typos in the API key"]
   }
+  
+  // All errors include helpful context
+  console.log('Error code:', error.code);
+  console.log('Error category:', error.category);
+  console.log('Is retryable:', error.isRetryable());
+  console.log('Documentation:', error.documentation);
 }
 ```
 
@@ -300,32 +377,50 @@ if (rateLimitInfo) {
 
 ## TypeScript Support
 
-The SDK is built with TypeScript and provides excellent type safety:
+The SDK is built with TypeScript and provides excellent type safety with the new API:
 
 ```typescript
 import type { 
-  CheckResponse,
-  AddressCheckResult,
-  ProxyCheckOptions,
-  ClientConfig 
+  CheckResult,
+  SemanticCheckOptions,
+  RiskLevel,
+  DetectionType,
+  ProxyCheckConfig 
 } from 'proxycheck-sdk';
 
-// All responses are fully typed
-const response: CheckResponse = await client.check.checkAddress('1.2.3.4');
+// All responses use boolean properties and enums
+const result: CheckResult = await client.check('1.2.3.4');
+// result.isProxy is boolean, not "yes"/"no" string
+// result.risk.level is typed as "low" | "medium" | "high" | "critical"
 
-// Options are validated at compile time
-const options: ProxyCheckOptions = {
-  vpnDetection: 2,        // ✅ Valid: 0, 1, 2, or 3
-  // vpnDetection: 5,     // ❌ TypeScript error: not assignable
-  asnData: true,
-  riskData: 1
+// Semantic options with full IntelliSense support
+const options: SemanticCheckOptions = {
+  detection: {
+    mode: 'both',          // ✅ Autocomplete: 'proxy' | 'vpn' | 'both'
+    level: 'enhanced'      // ✅ Autocomplete: 'basic' | 'enhanced' | 'paranoid'
+  },
+  enrich: {
+    risk: 'detailed',      // ✅ Autocomplete: 'basic' | 'detailed'
+    location: true,        // ✅ Boolean, not 1/0
+    network: true          // ✅ Clear intent
+  }
 };
 
-// Access typed result properties
-const result: AddressCheckResult = response['1.2.3.4'];
-if (result.proxy === 'yes') {
-  console.log(`Proxy type: ${result.type}`); // 'VPN' | 'PUB' | 'WEB' | etc.
-  console.log(`Risk score: ${result.risk}`); // number (0-100)
+// Type-safe risk levels
+const risk: RiskLevel = result.risk.level; 
+switch (risk) {
+  case 'low':      // ✅ TypeScript knows all cases
+  case 'medium':
+  case 'high':
+  case 'critical':
+    break;
+  // No default needed - TypeScript ensures exhaustiveness
+}
+
+// Proper type narrowing
+if (result.detection?.type === 'VPN') {
+  // TypeScript knows detection exists and type is 'VPN'
+  console.log('VPN provider:', result.network?.provider);
 }
 ```
 
@@ -334,72 +429,211 @@ if (result.proxy === 'yes') {
 ### Country-Based Filtering
 
 ```typescript
-// Block traffic from specific countries
-const result = await client.check.checkAddress('1.2.3.4', {
-  asnData: true, // Required for country detection
-  blockedCountries: ['CN', 'RU', 'KP'],
-  allowedCountries: ['US', 'CA', 'GB']
+// Block traffic from specific countries with semantic options
+const result = await client.check('1.2.3.4', {
+  enrich: {
+    location: true  // Required for country detection
+  },
+  countries: {
+    allowed: ['US', 'CA', 'GB'],     // Whitelist countries
+    blocked: ['CN', 'RU', 'KP']      // Blacklist countries
+  }
 });
 
-if (result.block === 'yes') {
-  console.log(`Blocked: ${result.block_reason}`); // 'country', 'proxy', 'vpn', etc.
+// Check if blocked - boolean result!
+if (result.isBlocked) {
+  console.log(`Blocked due to: ${result.blockReason}`);
+  // 'country' | 'proxy' | 'vpn' | 'risk' | 'blacklist'
+}
+
+// Access country info if available
+if (result.location) {
+  console.log(`Country: ${result.location.country} (${result.location.countryCode})`);
 }
 ```
 
-### Batch Processing
+### Batch Processing with Map Returns
 
 ```typescript
-// Process multiple IPs efficiently
+// Process multiple IPs efficiently - returns Map for O(1) access
 const addresses = ['1.2.3.4', '5.6.7.8', '8.8.8.8'];
-const results = await client.check.checkAddresses(addresses, {
-  vpnDetection: 2,
-  riskData: 1
+const results = await client.checkBatch(addresses, {
+  detection: { 
+    mode: 'both',
+    level: 'enhanced' 
+  },
+  enrich: { risk: 'detailed' }
 });
 
-// Process results
-for (const [ip, data] of Object.entries(results)) {
-  if (ip === 'status') continue; // Skip status field
+// Clean, type-safe iteration
+for (const [address, result] of results) {
+  console.log(`${address}: ${result.isProxy ? 'PROXY' : 'CLEAN'}`);
+  console.log(`  Risk: ${result.risk.level} (${result.risk.score}%)`);
   
-  console.log(`${ip}: ${data.proxy === 'yes' ? 'PROXY' : 'CLEAN'}`);
-  if (data.risk) {
-    console.log(`  Risk: ${data.risk}%`);
+  // Quick suspicious check
+  if (result.isSuspicious) {
+    console.warn(`⚠️  ${address} is suspicious!`);
   }
 }
+
+// Direct O(1) access to specific results
+const googleDNS = results.get('8.8.8.8');
+if (googleDNS && !googleDNS.isProxy) {
+  console.log('Google DNS is clean ✅');
+}
 ```
 
-### Real-time Monitoring with Rules
+### Real-time Security Monitoring
 
 ```typescript
-// Set up custom rule for high-risk detection
-await client.rules.createRule('high_risk_monitor',
-  '(proxy == "yes" AND type == "VPN") OR risk > 90 OR country == "anonymous"'
-);
-
-// Function to check and log high-risk activity
-async function monitorAddress(ip: string) {
+// Modern security monitoring with enhanced errors
+async function monitorTraffic(ip: string) {
   try {
-    const result = await client.check.checkAddress(ip, {
-      riskData: 2,
-      vpnDetection: 3,
-      asnData: true,
-      queryTagging: true,
-      customTag: 'security-monitor'
+    const result = await client.check(ip, {
+      detection: { 
+        mode: 'both',
+        level: 'paranoid'  // Maximum security
+      },
+      enrich: {
+        risk: 'detailed',
+        location: true,
+        network: true
+      },
+      analytics: {
+        tag: true,
+        customTag: 'security-monitor'
+      }
     });
     
-    if (result.block === 'yes') {
-      console.warn(`⚠️ High-risk IP detected: ${ip}`);
-      console.warn(`  Reason: ${result.block_reason}`);
-      console.warn(`  Risk: ${result[ip].risk}%`);
-      console.warn(`  Country: ${result[ip].country}`);
+    // Simple boolean checks
+    if (result.isSuspicious) {
+      console.warn(`⚠️ Suspicious activity detected: ${ip}`);
+      console.warn(`  Type: ${result.detection?.type || 'Unknown'}`);
+      console.warn(`  Risk: ${result.risk.level} (${result.risk.score}%)`);
+      console.warn(`  Location: ${result.location?.country || 'Unknown'}`);
+      
+      // Take action based on risk level
+      switch (result.risk.level) {
+        case 'critical':
+          // Block immediately
+          await blockIP(ip);
+          break;
+        case 'high':
+          // Add to watchlist
+          await addToWatchlist(ip);
+          break;
+        case 'medium':
+          // Log for review
+          await logSuspiciousActivity(ip, result);
+          break;
+      }
     }
     
     return result;
   } catch (error) {
-    console.error(`Failed to check ${ip}:`, error.message);
+    if (error instanceof ProxyCheckRateLimitError) {
+      console.log(`Rate limited. Waiting ${error.getFormattedTimeUntilReset()}`);
+      // SDK handles retry automatically
+    } else {
+      console.error(`Failed to check ${ip}:`, error.message);
+      console.error('Suggestions:', error.suggestions);
+    }
   }
 }
 ```
 
+## Migration from v0.x to v0.9.2
+
+The v0.9.2 release includes a completely redesigned API focused on developer experience. While this is a pre-1.0 release, breaking changes can be expected. Here's how to migrate:
+
+### Import Changes
+
+```typescript
+// Old
+import { ProxyCheckClient } from 'proxycheck-sdk';
+const client = new ProxyCheckClient({ apiKey: 'key' });
+
+// New
+import { ProxyCheck } from 'proxycheck-sdk';
+const client = new ProxyCheck({ apiKey: 'key' });
+```
+
+### API Method Changes
+
+```typescript
+// Old - nested service pattern with string returns
+const result = await client.check.checkAddress('8.8.8.8');
+if (result['8.8.8.8'].proxy === 'yes') { /* ... */ }
+
+// New - direct methods with boolean returns
+const result = await client.check('8.8.8.8');
+if (result.isProxy) { /* ... */ }
+```
+
+### Options Changes
+
+```typescript
+// Old - cryptic numeric values
+await client.check.checkAddress('1.2.3.4', {
+  vpnDetection: 2,    // What does 2 mean?
+  asnData: 1,         // Binary as number
+  riskData: 1
+});
+
+// New - semantic, self-documenting options
+await client.check('1.2.3.4', {
+  detection: { 
+    mode: 'both',
+    level: 'enhanced'   // Clear meaning
+  },
+  enrich: {
+    location: true,     // Boolean, not 1/0
+    network: true,
+    risk: 'detailed'    // Not just on/off
+  }
+});
+```
+
+### Response Changes
+
+```typescript
+// Old - string-based responses
+{
+  "8.8.8.8": {
+    proxy: "yes",
+    type: "VPN",
+    risk: 75
+  }
+}
+
+// New - boolean and typed responses
+{
+  address: "8.8.8.8",
+  isProxy: true,
+  isVPN: true,
+  risk: {
+    level: "high",    // Semantic level
+    score: 75         // Numeric score
+  }
+}
+```
+
+### Batch Operations
+
+```typescript
+// Old - returns object, requires filtering
+const results = await client.check.checkAddresses(['1.2.3.4', '5.6.7.8']);
+for (const [ip, data] of Object.entries(results)) {
+  if (ip === 'status') continue; // Skip status
+  // Process...
+}
+
+// New - returns Map, clean iteration
+const results = await client.checkBatch(['1.2.3.4', '5.6.7.8']);
+for (const [address, result] of results) {
+  // Direct iteration, no filtering needed
+}
+```
 
 ## Development
 

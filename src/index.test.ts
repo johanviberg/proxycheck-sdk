@@ -5,6 +5,6 @@ describe("ProxyCheck SDK", () => {
   it("should export VERSION", () => {
     expect(VERSION).toBeDefined();
     expect(typeof VERSION).toBe("string");
-    expect(VERSION).toBe("0.9.0");
+    expect(VERSION).toBe("0.9.2");
   });
 });

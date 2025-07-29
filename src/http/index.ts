@@ -139,6 +139,7 @@ export class HttpClient {
   /**
    * Perform HTTP request with retry logic
    */
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Required for retry logic and error handling
   async request<T = unknown>(requestConfig: RequestConfig): Promise<T> {
     const { method, url, params, data, headers } = requestConfig;
     const requestId = this.generateRequestId();
@@ -295,11 +296,11 @@ export class HttpClient {
   ): Promise<T> {
     const formData = new URLSearchParams();
     if (data) {
-      Object.entries(data).forEach(([key, value]) => {
+      for (const [key, value] of Object.entries(data)) {
         if (value !== undefined && value !== null) {
           formData.append(key, String(value));
         }
-      });
+      }
     }
 
     const config: RequestConfig = {
@@ -326,11 +327,11 @@ export class HttpClient {
       `${this._config.tlsSecurity ? "https" : "http"}://${this._config.baseUrl}`,
     );
 
-    Object.entries(params).forEach(([key, value]) => {
+    for (const [key, value] of Object.entries(params)) {
       if (value !== undefined && value !== null) {
         url.searchParams.append(key, String(value));
       }
-    });
+    }
 
     // Remove leading slash to match expected format
     const result = url.pathname + url.search;
@@ -350,11 +351,11 @@ export class HttpClient {
       `${this._config.tlsSecurity ? "https" : "http"}://${this._config.baseUrl}`,
     );
 
-    Object.entries(params).forEach(([key, value]) => {
+    for (const [key, value] of Object.entries(params)) {
       if (value !== undefined && value !== null) {
         url.searchParams.append(key, String(value));
       }
-    });
+    }
 
     // Remove leading slash to match expected format
     const result = url.pathname + url.search;

@@ -49,6 +49,9 @@ Thumbs.db
 CLAUDE.md
 TODOS.md
 PROXYCHECK.md
+.internal/
 
 # Lefthook
 .lefthook-local.yml
+DX_REFACTORING_PLAN.md
+DX_TODOS.md

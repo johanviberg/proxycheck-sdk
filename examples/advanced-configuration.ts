@@ -2,17 +2,17 @@
  * Advanced Configuration Examples
  *
  * This example demonstrates advanced configuration options and client customization
- * for enterprise use cases and fine-tuned security requirements.
+ * for enterprise use cases and fine-tuned security requirements using the new API.
  */
 
-import { type ClientConfig, ProxyCheckClient } from "../src";
+import { type ClientConfig, ProxyCheck } from "../src";
 
 async function advancedConfigurationExamples() {
-  console.log("🔧 ProxyCheck.io TypeScript SDK - Advanced Configuration Examples\n");
+  console.log("🔧 ProxyCheck.io TypeScript SDK - Advanced Configuration Examples (v0.9.2)\n");
 
   // Example 1: Maximum Security Configuration
   console.log("1. Maximum Security Configuration...");
-  const maxSecurityClient = new ProxyCheckClient({
+  const maxSecurityClient = new ProxyCheck({
     apiKey: process.env.PROXYCHECK_API_KEY || "your-api-key-here",
     tlsSecurity: true,
 
@@ -30,13 +30,33 @@ async function advancedConfigurationExamples() {
   });
 
   try {
-    const result = await maxSecurityClient.check.checkAddress("8.8.8.8");
-    console.log("Max security result keys:", Object.keys(result["8.8.8.8"] || {}));
+    // Use semantic options for maximum security
+    const result = await maxSecurityClient.check("8.8.8.8", {
+      detection: {
+        mode: "comprehensive"
+      },
+      enrich: {
+        risk: "detailed",
+        location: true,
+        network: true,
+        lastSeen: true,
+        port: true
+      },
+      timeRange: 30  // Look back 30 days
+    });
+    console.log("Max security result:");
+    console.log("  Is Proxy:", result.isProxy);
+    console.log("  Is VPN:", result.isVPN);
+    console.log("  Risk Level:", result.risk.level);
+    console.log("  Risk Score:", result.risk.score + "%");
+    if (result.risk.attacks) {
+      console.log("  Attack History Total:", result.risk.attacks.total);
+    }
     console.log("");
 
     // Example 2: Performance Optimized Configuration
     console.log("2. Performance Optimized Configuration...");
-    const performanceClient = new ProxyCheckClient({
+    const performanceClient = new ProxyCheck({
       apiKey: process.env.PROXYCHECK_API_KEY || "your-api-key-here",
       tlsSecurity: true,
 
@@ -51,13 +71,26 @@ async function advancedConfigurationExamples() {
       },
     });
 
-    const perfResult = await performanceClient.check.checkAddress("1.1.1.1");
-    console.log("Performance result:", JSON.stringify(perfResult, null, 2));
+    // Use minimal options for best performance
+    const perfResult = await performanceClient.check("1.1.1.1", {
+      detection: {
+        mode: "proxy"  // Only check proxies, skip VPN
+      },
+      enrich: {
+        risk: false,    // Skip risk calculation
+        location: false,
+        network: false
+      },
+      timeRange: 1      // Minimal lookback
+    });
+    console.log("Performance result:");
+    console.log("  Is Proxy:", perfResult.isProxy);
+    console.log("  Response time: Fast due to minimal options");
     console.log("");
 
     // Example 3: Enterprise Compliance Configuration
     console.log("3. Enterprise Compliance Configuration...");
-    const enterpriseClient = new ProxyCheckClient({
+    const enterpriseClient = new ProxyCheck({
       apiKey: process.env.PROXYCHECK_API_KEY || "your-api-key-here",
       tlsSecurity: true,
 
@@ -72,20 +105,27 @@ async function advancedConfigurationExamples() {
       },
     });
 
-    const enterpriseResult = await enterpriseClient.check.checkAddress("test@example.com");
+    // Check email with privacy masking
+    const enterpriseResult = await enterpriseClient.check("test@example.com", {
+      privacy: {
+        maskEmails: true  // Mask email addresses for compliance
+      },
+      tagging: {
+        enabled: true,
+        tag: "enterprise-audit"
+      }
+    });
     console.log("Enterprise compliance result:");
-    console.log("- Status:", enterpriseResult.status);
-    console.log(
-      "- Masked keys:",
-      Object.keys(enterpriseResult).filter((k) => k !== "status"),
-    );
+    console.log("- Is Disposable Email:", enterpriseResult.isDisposableEmail || false);
+    console.log("- Risk Level:", enterpriseResult.risk.level);
+    console.log("- Address (masked):", enterpriseResult.address);
     console.log("");
 
     // Example 4: Multi-Region Configuration
     console.log("4. Multi-Region Configuration with Fallback...");
 
     const createRegionalClient = (region: "us" | "eu" | "asia") => {
-      return new ProxyCheckClient({
+      return new ProxyCheck({
         apiKey: process.env.PROXYCHECK_API_KEY || "your-api-key-here",
 
         // Regional customization
@@ -108,18 +148,18 @@ async function advancedConfigurationExamples() {
     for (const { region, client } of clients) {
       try {
         console.log(`  Testing ${region.toUpperCase()} region...`);
-        const _result = await client.check.checkAddress("8.8.8.8");
+        const _result = await client.check("8.8.8.8");
         console.log(`  ✅ ${region.toUpperCase()} region successful`);
         break;
       } catch (error) {
-        console.log(`  ❌ ${region.toUpperCase()} region failed: ${error.message}`);
+        console.log(`  ❌ ${region.toUpperCase()} region failed: ${(error as Error).message}`);
       }
     }
     console.log("");
 
     // Example 5: Custom Headers and Advanced Options
     console.log("5. Custom Headers and Advanced Options...");
-    const customClient = new ProxyCheckClient({
+    const customClient = new ProxyCheck({
       apiKey: process.env.PROXYCHECK_API_KEY || "your-api-key-here",
 
       tlsSecurity: true,
@@ -131,32 +171,48 @@ async function advancedConfigurationExamples() {
       },
     });
 
-    const customResult = await customClient.check.checkAddress("1.2.3.4");
-    console.log("Custom headers result status:", customResult.status);
+    const customResult = await customClient.check("1.2.3.4", {
+      detection: {
+        mode: "both"
+      },
+      enrich: {
+        risk: "basic",
+        network: true
+      },
+      tagging: {
+        enabled: true,
+        tag: "custom-app"
+      }
+    });
+    console.log("Custom headers result:");
+    console.log("  Is Proxy:", customResult.isProxy);
+    console.log("  Detection Type:", customResult.detection.type || "None");
     console.log("");
 
     // Example 6: Configuration Validation
     console.log("6. Configuration Validation...");
 
     const validateConfiguration = (config: Partial<ClientConfig>) => {
-      const client = new ProxyCheckClient(config);
-      const _info = client.getClientInfo();
+      const client = new ProxyCheck(config);
+      const status = client.getStatus();
 
       console.log("Configuration Status:");
-      console.log(`  - Configured: ${client.isConfigured() ? "✅" : "❌"}`);
+      console.log(`  - Configured: ${status.configured ? "✅" : "❌"}`);
       console.log(`  - API Key Set: ${config.apiKey ? "✅" : "❌"}`);
-      console.log(`  - TLS Security: ${config.tlsSecurity ? "✅" : "❌"}`);
+      console.log(`  - TLS Security: ${config.tlsSecurity !== false ? "✅" : "❌"}`);
       console.log(`  - Timeout: ${config.timeout || "default"}ms`);
       console.log(`  - Retries: ${config.retries || "default"}`);
       console.log(`  - User Agent: ${config.userAgent || "default"}`);
+      console.log(`  - Base URL: ${status.baseUrl}`);
+      console.log(`  - SDK Version: ${status.version}`);
 
-      return client.isConfigured();
+      return status.configured;
     };
 
     const testConfigs = [
       { apiKey: "test-key", tlsSecurity: true },
       { apiKey: "", tlsSecurity: false },
-      { apiKey: process.env.PROXYCHECK_API_KEY, vpnDetection: 3, riskData: 2 },
+      { apiKey: process.env.PROXYCHECK_API_KEY, timeout: 15000, retries: 5 },
     ];
 
     testConfigs.forEach((config, index) => {
@@ -164,9 +220,12 @@ async function advancedConfigurationExamples() {
       validateConfiguration(config);
     });
   } catch (error) {
-    console.error("Error in advanced configuration:", error.message);
-    if (error.code) {
-      console.error("Error code:", error.code);
+    console.error("Error in advanced configuration:", error);
+    if (error instanceof Error) {
+      console.error("Error message:", error.message);
+      if ("code" in error) {
+        console.error("Error code:", error.code);
+      }
     }
   }
 }
@@ -175,12 +234,6 @@ async function advancedConfigurationExamples() {
 async function dynamicConfigurationExample() {
   console.log("\n7. Dynamic Configuration Updates...");
 
-  const _client = new ProxyCheckClient({
-    apiKey: process.env.PROXYCHECK_API_KEY || "your-api-key-here",
-    vpnDetection: 1,
-    logLevel: "info",
-  });
-
   // Simulate configuration changes based on threat level
   const threatLevels = ["low", "medium", "high"] as const;
 
@@ -188,26 +241,158 @@ async function dynamicConfigurationExample() {
     console.log(`\n  Threat Level: ${threatLevel.toUpperCase()}`);
 
     // Create new client with threat-appropriate configuration
-    const adaptiveClient = new ProxyCheckClient({
+    const adaptiveClient = new ProxyCheck({
       apiKey: process.env.PROXYCHECK_API_KEY || "your-api-key-here",
-      vpnDetection: threatLevel === "high" ? 3 : threatLevel === "medium" ? 2 : 1,
-      riskData: threatLevel === "high" ? 2 : threatLevel === "medium" ? 1 : 0,
-      asnData: threatLevel !== "low",
-      customTag: `threat-level-${threatLevel}`,
-      logLevel: threatLevel === "high" ? "debug" : "warn",
+      // Adjust client-level settings based on threat
+      timeout: threatLevel === "high" ? 15000 : 10000,
+      retries: threatLevel === "high" ? 3 : 2,
+      logging: {
+        level: threatLevel === "high" ? "debug" : threatLevel === "medium" ? "info" : "warn"
+      }
     });
 
     try {
-      const result = await adaptiveClient.check.checkAddress("8.8.8.8");
-      const ipData = result["8.8.8.8"];
+      // Use semantic options based on threat level
+      const semanticOptions = threatLevel === "high" ? {
+        detection: { mode: "comprehensive" as const },
+        enrich: {
+          risk: "detailed" as const,
+          location: true,
+          network: true,
+          lastSeen: true,
+          port: true
+        },
+        timeRange: 30,
+        tagging: {
+          enabled: true,
+          tag: `threat-level-${threatLevel}`
+        }
+      } : threatLevel === "medium" ? {
+        detection: { mode: "both" as const },
+        enrich: {
+          risk: "basic" as const,
+          location: true,
+          network: true
+        },
+        timeRange: 7,
+        tagging: {
+          enabled: true,
+          tag: `threat-level-${threatLevel}`
+        }
+      } : {
+        detection: { mode: "proxy" as const },
+        enrich: {
+          risk: false
+        },
+        timeRange: 1
+      };
+
+      const result = await adaptiveClient.check("8.8.8.8", semanticOptions);
 
       console.log(
         `    - Detection Level: ${threatLevel === "high" ? "Maximum" : threatLevel === "medium" ? "Enhanced" : "Standard"}`,
       );
-      console.log(`    - Response Fields: ${Object.keys(ipData || {}).length}`);
-      console.log(`    - Status: ${result.status}`);
+      console.log(`    - Risk Score: ${result.risk.score || 0}%`);
+      console.log(`    - Risk Level: ${result.risk.level || "unknown"}`);
+      console.log(`    - Is Proxy: ${result.isProxy}`);
+      console.log(`    - Is VPN: ${result.isVPN}`);
     } catch (error) {
-      console.log(`    - Error: ${error.message}`);
+      console.log(`    - Error: ${(error as Error).message}`);
+    }
+  }
+}
+
+// Example 8: Configuration Factory Methods
+async function configurationFactoryExample() {
+  console.log("\n8. Configuration Factory Methods...");
+
+  // Security-focused configuration
+  console.log("\n  Security-Focused Client:");
+  const securityClient = ProxyCheck.withSecurityFocus({
+    apiKey: process.env.PROXYCHECK_API_KEY || "your-api-key-here"
+  });
+
+  const securityResult = await securityClient.check("1.2.3.4");
+  console.log("    - Automatic comprehensive detection");
+  console.log("    - Risk Level:", securityResult.risk.level);
+  if (securityResult.risk.attacks) {
+    console.log("    - Attack History Included: Yes");
+  }
+
+  // Performance-focused configuration
+  console.log("\n  Performance-Focused Client:");
+  const performanceClient = ProxyCheck.withPerformanceFocus({
+    apiKey: process.env.PROXYCHECK_API_KEY || "your-api-key-here"
+  });
+
+  const start = Date.now();
+  const perfResult = await performanceClient.check("8.8.8.8");
+  const elapsed = Date.now() - start;
+  console.log("    - Minimal detection only");
+  console.log(`    - Response time: ${elapsed}ms`);
+  console.log("    - Is Proxy:", perfResult.isProxy);
+
+  // From API key only
+  console.log("\n  Simple API Key Client:");
+  const simpleClient = ProxyCheck.fromApiKey(
+    process.env.PROXYCHECK_API_KEY || "your-api-key-here"
+  );
+  console.log("    - Default configuration with just API key");
+  const simpleStatus = simpleClient.getStatus();
+  console.log("    - Configured:", simpleStatus.configured);
+}
+
+// Example 9: Preset Configuration Options
+async function presetConfigurationExample() {
+  console.log("\n9. Preset Configuration Options...");
+
+  const client = new ProxyCheck({
+    apiKey: process.env.PROXYCHECK_API_KEY || "your-api-key-here"
+  });
+
+  // Use preset options from the library
+  const presets = [
+    {
+      name: "DEFAULT_CHECK_OPTIONS",
+      options: {} // Will use defaults
+    },
+    {
+      name: "SECURITY_FOCUSED_OPTIONS",
+      options: {
+        detection: { mode: "comprehensive" as const },
+        enrich: {
+          risk: "detailed" as const,
+          location: true,
+          network: true,
+          lastSeen: true,
+          port: true
+        },
+        timeRange: 30
+      }
+    },
+    {
+      name: "PERFORMANCE_FOCUSED_OPTIONS",
+      options: {
+        detection: { mode: "proxy" as const },
+        enrich: {
+          risk: false as const,
+          location: false,
+          network: false
+        },
+        timeRange: 1
+      }
+    }
+  ];
+
+  for (const preset of presets) {
+    console.log(`\n  Using ${preset.name}:`);
+    try {
+      const result = await client.check("1.1.1.1", preset.options);
+      console.log("    - Is Proxy:", result.isProxy);
+      console.log("    - Has location:", !!result.location);
+      console.log("    - Has risk details:", !!result.risk.attacks);
+    } catch (error) {
+      console.log("    - Error:", (error as Error).message);
     }
   }
 }
@@ -216,6 +401,8 @@ async function dynamicConfigurationExample() {
 async function main() {
   await advancedConfigurationExamples();
   await dynamicConfigurationExample();
+  await configurationFactoryExample();
+  await presetConfigurationExample();
 
   console.log("\n🎯 Advanced Configuration Examples Complete!");
   console.log(
