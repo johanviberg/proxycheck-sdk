@@ -7,6 +7,7 @@ import type { RuleOptions, RuleResponse } from "../types";
 import { API_ENDPOINTS } from "../types/constants";
 import { RuleOptionsSchema } from "../types/schemas";
 import { stripUndefined } from "../utils/object";
+import { extractZodErrors } from "../utils/validation";
 import { BaseService } from "./base";
 
 /**
@@ -227,8 +228,17 @@ export class RulesService extends BaseService {
     try {
       const parsed = RuleOptionsSchema.parse(options) as any;
       return stripUndefined(parsed) as RuleOptions;
-    } catch (_error) {
-      throw new ProxyCheckValidationError("Invalid rule options provided", "options", options);
+    } catch (error) {
+      // Extract and log validation errors
+      const validationErrors = extractZodErrors(error, this.logger);
+
+      throw new ProxyCheckValidationError(
+        "Invalid rule options provided",
+        "options",
+        options,
+        validationErrors,
+        error,
+      );
     }
   }
 }
