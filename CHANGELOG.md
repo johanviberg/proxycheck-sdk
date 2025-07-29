@@ -5,6 +5,130 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.2] - 2025-07-11
+
+### ⚠️ BREAKING CHANGES
+
+This release introduces a modernized API that significantly improves developer experience. While we maintain backward compatibility through aliases, we strongly recommend migrating to the new API.
+
+### Changed
+
+#### New Modern API
+- **Simplified client instantiation**: Use `ProxyCheck` instead of `ProxyCheckClient`
+  ```typescript
+  // Old
+  const client = new ProxyCheckClient({ apiKey: 'your-key' });
+  
+  // New
+  const client = new ProxyCheck({ apiKey: 'your-key' });
+  ```
+
+- **Direct method access**: Check methods are now available directly on the client
+  ```typescript
+  // Old
+  await client.check.checkAddress('8.8.8.8');
+  
+  // New
+  await client.check('8.8.8.8');
+  ```
+
+- **Semantic options**: More intuitive option names with better TypeScript support
+  ```typescript
+  // Old
+  await client.check.checkAddress('8.8.8.8', {
+    asnData: true,
+    riskData: 2,
+    maskAddress: true
+  });
+  
+  // New
+  await client.check('8.8.8.8', {
+    enrich: {
+      network: true,
+      risk: 'detailed',
+      location: true
+    },
+    privacy: {
+      maskEmail: true
+    }
+  });
+  ```
+
+- **Enhanced response types**: Responses now use more intuitive property names
+  ```typescript
+  // Old
+  if (result['8.8.8.8'].proxy === 'yes') { }
+  
+  // New
+  if (result.isProxy) { }
+  ```
+
+- **Improved batch operations**: Batch checks now return a Map for better iteration
+  ```typescript
+  // Old
+  const results = await client.check.checkAddresses(['8.8.8.8', '1.1.1.1']);
+  for (const address in results) {
+    if (results[address].proxy === 'yes') { }
+  }
+  
+  // New
+  const results = await client.checkBatch(['8.8.8.8', '1.1.1.1']);
+  for (const [address, result] of results) {
+    if (result.isProxy) { }
+  }
+  ```
+
+### Added
+- New convenience methods for common operations:
+  - `client.isSuspicious(address)` - Quick security check
+  - `client.isProxy(address)` - Direct proxy detection
+  - `client.isVPN(address)` - Direct VPN detection
+  - `client.isDisposableEmail(email)` - Email validation
+  - `client.getRiskLevel(address)` - Risk assessment
+
+- Enhanced error handling with recovery strategies
+- Response interceptors for custom processing
+- Built-in performance benchmarks
+- Tree-shaking support with `sideEffects: false`
+
+### Deprecated
+- `ProxyCheckClient` class (use `ProxyCheck` instead)
+- `client.check.checkAddress()` method (use `client.check()` instead)
+- `client.check.checkAddresses()` method (use `client.checkBatch()` instead)
+- Old option names (`asnData`, `riskData`, `maskAddress`, etc.)
+
+### Removed
+- Internal batch processing utilities (now handled automatically)
+- Legacy client implementation details
+
+### Fixed
+- TypeScript strict mode compatibility
+- Response transformation edge cases
+- Integration test reliability
+
+### Migration Guide
+
+For a smooth migration to the new API:
+
+1. Update imports:
+   ```typescript
+   // Old
+   import { ProxyCheckClient } from 'proxycheck-sdk';
+   
+   // New
+   import { ProxyCheck } from 'proxycheck-sdk';
+   ```
+
+2. Update client instantiation (see examples above)
+
+3. Update method calls to use the new simplified API
+
+4. Update option objects to use semantic names
+
+5. Update response handling to use new property names
+
+The old API remains available through aliases for backward compatibility, but will be removed in version 1.0.0.
+
 ## [0.9.0] - 2025-07-07
 
 ### 🎉 Initial Public Release
