@@ -5,7 +5,7 @@
  * Tests will only run if explicitly enabled via environment variables.
  */
 
-import { ProxyCheckClient } from "../../src";
+import { ProxyCheck } from "../../src";
 
 // Environment configuration
 export const API_KEY = process.env.PROXYCHECK_TEST_API_KEY;
@@ -19,12 +19,12 @@ export const RUN_COMPREHENSIVE_TESTS = process.env.RUN_COMPREHENSIVE_TESTS === "
 export const VERBOSE_LOGGING = process.env.VERBOSE_TEST_LOGGING === "true";
 
 // Global test client instance
-let testClient: ProxyCheckClient | null = null;
+let testClient: ProxyCheck | null = null;
 
 /**
  * Get or create a test client instance
  */
-export function getTestClient(): ProxyCheckClient {
+export function getTestClient(): ProxyCheck {
   if (!testClient) {
     if (!API_KEY) {
       throw new Error(
@@ -33,7 +33,7 @@ export function getTestClient(): ProxyCheckClient {
       );
     }
 
-    testClient = new ProxyCheckClient({
+    testClient = new ProxyCheck({
       apiKey: API_KEY,
       retries: 3,
       retryDelay: 2000,

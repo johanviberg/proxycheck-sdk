@@ -3,8 +3,8 @@
  * Tests that the package works correctly in Node.js environments
  */
 
-import { describe, expect, test } from "@jest/globals";
-import { ProxyCheckClient } from "../../src/index";
+import { describe, expect, test, jest } from "@jest/globals";
+import { ProxyCheck } from "../../src/index";
 
 describe("Node.js Environment Compatibility", () => {
   test("should detect Node.js environment", () => {
@@ -87,7 +87,7 @@ describe("Node.js Environment Compatibility", () => {
   });
 
   test("should support Node.js async/await", async () => {
-    const _client = new ProxyCheckClient({
+    const _client = new ProxyCheck({
       apiKey: "test-key",
     });
 
@@ -126,7 +126,13 @@ describe("Node.js Environment Compatibility", () => {
     const nodeVersion = process.versions.node;
     const majorVersion = Number.parseInt(nodeVersion.split(".")[0]);
 
-    // Test that Node.js version meets requirements (>=18)
+    // Test that Node.js version meets requirements (>=18.12.0)
     expect(majorVersion).toBeGreaterThanOrEqual(18);
+    
+    // If it's Node 18, check minor version is at least 12
+    if (majorVersion === 18) {
+      const minorVersion = Number.parseInt(nodeVersion.split(".")[1]);
+      expect(minorVersion).toBeGreaterThanOrEqual(12);
+    }
   });
 });

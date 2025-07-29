@@ -1,9 +1,9 @@
 /**
- * CommonJS import compatibility test
- * Tests that the package can be imported using require() syntax
+ * CommonJS Import Compatibility Test
+ * Verifies that the SDK can be imported and used correctly with CommonJS
  */
 
-const { describe, test, expect } = require('@jest/globals');
+const { describe, test, expect, beforeAll } = require('@jest/globals');
 const fs = require('fs');
 const path = require('path');
 
@@ -16,64 +16,72 @@ describe('CommonJS Import Compatibility', () => {
     }
   });
 
-  test('should import main module using require()', () => {
-    const proxycheck = require('../../dist/index.js');
-    
-    expect(proxycheck).toBeDefined();
-    expect(typeof proxycheck).toBe('object');
+  test('should import main class using require', () => {
+    const { ProxyCheck } = require('../../dist/index.js');
+    expect(ProxyCheck).toBeDefined();
+    expect(typeof ProxyCheck).toBe('function');
   });
 
-  test('should import ProxyCheckClient class', () => {
+  test('should import legacy client name for backward compatibility', () => {
     const { ProxyCheckClient } = require('../../dist/index.js');
-    
     expect(ProxyCheckClient).toBeDefined();
     expect(typeof ProxyCheckClient).toBe('function');
   });
 
-  test('should import error classes', () => {
-    const { 
-      ProxyCheckError, 
-      ProxyCheckAPIError, 
-      ProxyCheckValidationError 
-    } = require('../../dist/index.js');
+  test('should import all exported types', () => {
+    const sdk = require('../../dist/index.js');
     
-    expect(ProxyCheckError).toBeDefined();
-    expect(ProxyCheckAPIError).toBeDefined();
-    expect(ProxyCheckValidationError).toBeDefined();
+    // Core exports
+    expect(sdk.ProxyCheck).toBeDefined();
+    expect(sdk.ProxyCheckClient).toBeDefined();
+    expect(sdk.VERSION).toBeDefined();
+    
+    // Error exports
+    expect(sdk.ProxyCheckError).toBeDefined();
+    expect(sdk.ProxyCheckConfigurationError).toBeDefined();
+    expect(sdk.ProxyCheckAuthError).toBeDefined();
+    expect(sdk.ProxyCheckRateLimitError).toBeDefined();
+    expect(sdk.ProxyCheckNetworkError).toBeDefined();
+    expect(sdk.ProxyCheckServiceError).toBeDefined();
+    expect(sdk.ProxyCheckDataError).toBeDefined();
+    expect(sdk.ProxyCheckTimeoutError).toBeDefined();
+    expect(sdk.ProxyCheckNotFoundError).toBeDefined();
+    expect(sdk.ProxyCheckQuotaError).toBeDefined();
   });
 
-  test('should import types and interfaces', () => {
-    const proxycheck = require('../../dist/index.js');
+  test('should create client instance with new API', () => {
+    const { ProxyCheck } = require('../../dist/index.js');
     
-    // Check that exported types are available at runtime
-    expect(proxycheck.ProxyCheckClient).toBeDefined();
-    expect(proxycheck.CheckService).toBeDefined();
-    expect(proxycheck.ListingService).toBeDefined();
-    expect(proxycheck.RulesService).toBeDefined();
-    expect(proxycheck.StatsService).toBeDefined();
-  });
-
-  test('should create ProxyCheckClient instance', () => {
-    const { ProxyCheckClient } = require('../../dist/index.js');
-    
-    const client = new ProxyCheckClient({
-      apiKey: 'test-key',
-      tlsSecurity: true
-    });
-    
-    expect(client).toBeInstanceOf(ProxyCheckClient);
-  });
-
-  test('should access service instances through client', () => {
-    const { ProxyCheckClient } = require('../../dist/index.js');
-    
-    const client = new ProxyCheckClient({
+    const client = new ProxyCheck({
       apiKey: 'test-key'
     });
     
-    expect(client.check).toBeDefined();
-    expect(client.listing).toBeDefined();
-    expect(client.rules).toBeDefined();
-    expect(client.stats).toBeDefined();
+    expect(client).toBeDefined();
+    expect(typeof client.check).toBe('function');
+    expect(typeof client.checkBatch).toBe('function');
+    expect(typeof client.isProxy).toBe('function');
+    expect(typeof client.isVPN).toBe('function');
+    expect(typeof client.isSuspicious).toBe('function');
+    expect(typeof client.isDisposableEmail).toBe('function');
+    expect(typeof client.getRiskLevel).toBe('function');
+    expect(typeof client.isFromCountry).toBe('function');
+    expect(client.dashboard).toBeDefined();
+    expect(client.lists).toBeDefined();
+  });
+
+  test('should handle destructuring imports', () => {
+    const { ProxyCheck, VERSION, ProxyCheckError } = require('../../dist/index.js');
+    
+    expect(ProxyCheck).toBeDefined();
+    expect(VERSION).toBeDefined();
+    expect(ProxyCheckError).toBeDefined();
+  });
+
+  test('should validate version string', () => {
+    const { VERSION } = require('../../dist/index.js');
+    
+    expect(typeof VERSION).toBe('string');
+    expect(VERSION).toMatch(/^\d+\.\d+\.\d+/);
+    expect(VERSION).toBe('0.9.2');
   });
 });

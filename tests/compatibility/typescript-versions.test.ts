@@ -4,8 +4,8 @@
  */
 
 import { describe, expect, test } from "@jest/globals";
-import { ProxyCheckClient, ProxyCheckError } from "../../src/index";
-import type { ClientConfig, ProxyCheckOptions, ProxyType } from "../../src/types";
+import { ProxyCheck, ProxyCheckError } from "../../src/index";
+import type { ClientConfig, SemanticCheckOptions } from "../../src/types";
 
 describe("TypeScript Version Compatibility", () => {
   test("should provide correct type definitions", () => {
@@ -23,46 +23,55 @@ describe("TypeScript Version Compatibility", () => {
   });
 
   test("should support strict TypeScript mode", () => {
-    // Test strict mode compatibility
-    const client = new ProxyCheckClient({
+    // Test strict mode compatibility with new API
+    const client = new ProxyCheck({
       apiKey: "test-key",
     });
 
     // TypeScript should enforce proper typing
-    expect(client).toBeInstanceOf(ProxyCheckClient);
-    expect(client.check).toBeDefined();
+    expect(client).toBeInstanceOf(ProxyCheck);
+    expect(typeof client.check).toBe("function");
+    expect(typeof client.checkBatch).toBe("function");
   });
 
-  test("should properly type service methods", () => {
-    const client = new ProxyCheckClient({ apiKey: "test" });
+  test("should properly type new API methods", () => {
+    const client = new ProxyCheck({ apiKey: "test" });
 
-    // Test that service methods have correct signatures
-    expect(typeof client.check.checkAddress).toBe("function");
-    expect(typeof client.check.checkAddresses).toBe("function");
-    expect(typeof client.listing.addToWhitelist).toBe("function");
-    expect(typeof client.listing.addToBlacklist).toBe("function");
+    // Test that new API methods have correct signatures
+    expect(typeof client.check).toBe("function");
+    expect(typeof client.checkBatch).toBe("function");
+    expect(typeof client.isProxy).toBe("function");
+    expect(typeof client.isVPN).toBe("function");
+    expect(typeof client.dashboard.getUsage).toBe("function");
+    expect(typeof client.lists.whitelist.add).toBe("function");
   });
 
   test("should support union types for API responses", () => {
-    // Test that union types work correctly
-    const proxyType: ProxyType = "VPN";
-    const vpnLevel: 0 | 1 | 2 | 3 = 2;
+    // Test that union types work correctly with new API
+    const riskLevel: "low" | "medium" | "high" | "critical" = "medium";
+    const detectionMode: "proxy" | "vpn" | "both" = "both";
 
-    expect(["VPN", "PUB", "WEB", "TOR"].includes(proxyType)).toBe(true);
-    expect([0, 1, 2, 3].includes(vpnLevel)).toBe(true);
+    expect(["low", "medium", "high", "critical"].includes(riskLevel)).toBe(true);
+    expect(["proxy", "vpn", "both"].includes(detectionMode)).toBe(true);
   });
 
   test("should support generic types", () => {
-    // Test generic type parameters
-    const options: ProxyCheckOptions = {
-      vpnDetection: 1,
-      asnData: true,
-      riskData: 1,
+    // Test generic type parameters with semantic options
+    const options: SemanticCheckOptions = {
+      detection: {
+        mode: "both",
+        level: "enhanced"
+      },
+      enrich: {
+        location: true,
+        network: true,
+        risk: "detailed"
+      }
     };
 
     expect(options).toBeDefined();
-    expect(typeof options.vpnDetection).toBe("number");
-    expect(typeof options.asnData).toBe("boolean");
+    expect(options.detection?.mode).toBe("both");
+    expect(options.enrich?.location).toBe(true);
   });
 
   test("should properly extend Error classes", () => {
