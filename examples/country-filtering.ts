@@ -2,12 +2,12 @@
  * Country-Based Filtering Examples
  *
  * This example demonstrates how to implement country-based filtering
- * and geolocation-based security policies.
+ * and geolocation-based security policies with the new API.
  */
 
-import { ProxyCheckClient } from "../src";
+import { ProxyCheck } from "../src";
 
-const client = new ProxyCheckClient({
+const client = new ProxyCheck({
   apiKey: process.env.PROXYCHECK_API_KEY || "your-api-key-here",
 });
 
@@ -32,26 +32,35 @@ async function countryBlockingExample() {
     for (const [label, ip] of Object.entries(testIPs)) {
       console.log(`Checking ${label} (${ip})...`);
 
-      const result = await client.check.checkAddress(ip, {
-        asnData: true, // Required for country detection
+      const result = await client.check(ip, {
+        enrich: {
+          location: true, // Required for country detection
+          network: true,
+          risk: "basic"
+        },
         blockedCountries,
-        vpnDetection: 1,
-        riskData: 1,
-        queryTagging: true,
-        customTag: "country-blocking",
+        detection: {
+          mode: "both"
+        },
+        tagging: {
+          enabled: true,
+          tag: "country-blocking"
+        }
       });
 
-      const addressData = result[ip];
+      if (result.location) {
+        console.log(
+          `  Country: ${result.location.country || "Unknown"} (${result.location.countryCode || "N/A"})`,
+        );
+      }
+      console.log(`  Proxy: ${result.isProxy ? "Yes" : "No"}`);
+      console.log(`  VPN: ${result.isVPN ? "Yes" : "No"}`);
+      console.log(`  Risk Level: ${result.risk.level}`);
 
-      console.log(
-        `  Country: ${addressData.country || "Unknown"} (${addressData.isocode || "N/A"})`,
-      );
-      console.log(`  Proxy: ${addressData.proxy}`);
-      console.log(`  Block Status: ${result.block}`);
-      console.log(`  Block Reason: ${result.block_reason}`);
-
-      if (result.block === "yes") {
-        console.log(`  🚨 BLOCKED: ${result.block_reason}`);
+      // Check if country is blocked
+      const isBlocked = result.location && blockedCountries.includes(result.location.countryCode || "");
+      if (isBlocked) {
+        console.log(`  🚨 BLOCKED: Country ${result.location?.countryCode} is on blocklist`);
       } else {
         console.log("  ✅ ALLOWED");
       }
@@ -59,7 +68,10 @@ async function countryBlockingExample() {
       console.log("");
     }
   } catch (error) {
-    console.error("Country blocking example failed:", error.message);
+    console.error("Country blocking example failed:", error);
+    if (error instanceof Error) {
+      console.error("Error message:", error.message);
+    }
   }
 }
 
@@ -75,27 +87,35 @@ async function countryAllowlistExample() {
     for (const [label, ip] of Object.entries(testIPs)) {
       console.log(`Checking ${label} (${ip})...`);
 
-      const result = await client.check.checkAddress(ip, {
-        asnData: true,
+      const result = await client.check(ip, {
+        enrich: {
+          location: true,
+          network: true,
+          risk: "detailed"
+        },
         allowedCountries,
-        vpnDetection: 2,
-        riskData: 2,
-        queryTagging: true,
-        customTag: "country-allowlist",
+        detection: {
+          mode: "comprehensive"
+        },
+        tagging: {
+          enabled: true,
+          tag: "country-allowlist"
+        }
       });
 
-      const addressData = result[ip];
+      if (result.location) {
+        console.log(
+          `  Country: ${result.location.country || "Unknown"} (${result.location.countryCode || "N/A"})`,
+        );
+      }
+      console.log(`  Proxy: ${result.isProxy ? "Yes" : "No"}`);
+      console.log(`  Risk Score: ${result.risk.score}%`);
+      console.log(`  Risk Level: ${result.risk.level}`);
 
-      console.log(
-        `  Country: ${addressData.country || "Unknown"} (${addressData.isocode || "N/A"})`,
-      );
-      console.log(`  Proxy: ${addressData.proxy}`);
-      console.log(`  Risk: ${addressData.risk || "N/A"}%`);
-      console.log(`  Block Status: ${result.block}`);
-      console.log(`  Block Reason: ${result.block_reason}`);
-
-      if (result.block === "yes") {
-        console.log(`  🚨 BLOCKED: ${result.block_reason}`);
+      // Check if country is allowed
+      const isAllowed = result.location && allowedCountries.includes(result.location.countryCode || "");
+      if (!isAllowed && result.location?.countryCode) {
+        console.log(`  🚨 BLOCKED: Country ${result.location.countryCode} is not on allowlist`);
       } else {
         console.log("  ✅ ALLOWED");
       }
@@ -103,7 +123,10 @@ async function countryAllowlistExample() {
       console.log("");
     }
   } catch (error) {
-    console.error("Country allowlist example failed:", error.message);
+    console.error("Country allowlist example failed:", error);
+    if (error instanceof Error) {
+      console.error("Error message:", error.message);
+    }
   }
 }
 
@@ -114,44 +137,74 @@ async function geolocationAnalysisExample() {
     for (const [label, ip] of Object.entries(testIPs)) {
       console.log(`Analyzing ${label} (${ip})...`);
 
-      const result = await client.check.getDetailedInfo(ip, {
-        asnData: true,
-        riskData: 2,
-        vpnDetection: 3,
+      const result = await client.check(ip, {
+        enrich: {
+          location: true,
+          network: true,
+          risk: "detailed",
+          lastSeen: true,
+          port: true
+        },
+        detection: {
+          mode: "comprehensive"
+        }
       });
 
-      if (result) {
+      if (result.location) {
         console.log(
-          `  🌍 Location: ${result.city || "Unknown"}, ${result.region || "Unknown"}, ${result.country || "Unknown"}`,
+          `  🌍 Location: ${result.location.city || "Unknown"}, ${result.location.region || "Unknown"}, ${result.location.country || "Unknown"}`,
         );
-        console.log(`  🗺️  Coordinates: ${result.latitude || "N/A"}, ${result.longitude || "N/A"}`);
-        console.log(`  🌐 Continent: ${result.continent || "Unknown"}`);
-        console.log(`  🏢 ISP: ${result.isp || "Unknown"}`);
-        console.log(`  🏛️  Organization: ${result.organisation || "Unknown"}`);
-        console.log(`  🔢 ASN: ${result.asn || "Unknown"}`);
-        console.log(
-          `  💰 Currency: ${result.currency ? `${result.currency.name} (${result.currency.symbol})` : "Unknown"}`,
-        );
-        console.log(`  🕐 Timezone: ${result.timezone || "Unknown"}`);
-        console.log(`  📱 Mobile: ${result.mobile ? "Yes" : "No"}`);
-        console.log(`  ⚠️  Risk: ${result.risk || "N/A"}%`);
-        console.log(`  🛡️  VPN: ${result.vpn || "N/A"}`);
-        console.log(`  🚪 Port Open: ${result.port ? "Yes" : "No"}`);
-        console.log(`  👁️  Recently Seen: ${result.seen ? "Yes" : "No"}`);
-
-        if (result.last_seen) {
-          console.log(`  ⏰ Last Seen: ${result.last_seen}`);
+        if (result.location.coordinates) {
+          console.log(`  🗺️  Coordinates: ${result.location.coordinates.latitude}, ${result.location.coordinates.longitude}`);
         }
+        console.log(`  🌐 Continent: ${result.location.continent || "Unknown"}`);
+        if (result.location.currency) {
+          console.log(
+            `  💰 Currency: ${result.location.currency.name} (${result.location.currency.symbol})`,
+          );
+        }
+        console.log(`  🕐 Timezone: ${result.location.timezone || "Unknown"}`);
+      }
+      
+      if (result.network) {
+        console.log(`  🏢 Provider: ${result.network.provider || "Unknown"}`);
+        console.log(`  🏛️  Organization: ${result.network.organization || "Unknown"}`);
+        console.log(`  🔢 ASN: ${result.network.asn || "Unknown"}`);
+      }
+      
+      console.log(`  ⚠️  Risk Score: ${result.risk.score}%`);
+      console.log(`  🔴 Risk Level: ${result.risk.level}`);
+      console.log(`  🛡️  VPN: ${result.isVPN ? "Yes" : "No"}`);
+      console.log(`  🌐 Proxy: ${result.isProxy ? "Yes" : "No"}`);
+      
+      if (result.detection.type) {
+        console.log(`  🔍 Detection Type: ${result.detection.type}`);
+      }
+      if (result.detection.port) {
+        console.log(`  🚪 Port: ${result.detection.port}`);
+      }
+      if (result.detection.lastSeen) {
+        console.log(`  ⏰ Last Seen: ${result.detection.lastSeen.toISOString()}`);
+      }
 
-        if (result.attack_history) {
-          console.log(`  ⚔️  Attack History: ${result.attack_history}`);
+      if (result.risk.attacks) {
+        console.log(`  ⚔️  Attack History:`);
+        console.log(`     Total attacks: ${result.risk.attacks.total}`);
+        if (result.risk.attacks.loginAttempt) {
+          console.log(`     Login attempts: ${result.risk.attacks.loginAttempt}`);
+        }
+        if (result.risk.attacks.registrationAttempt) {
+          console.log(`     Registration attempts: ${result.risk.attacks.registrationAttempt}`);
         }
       }
 
       console.log("");
     }
   } catch (error) {
-    console.error("Geolocation analysis failed:", error.message);
+    console.error("Geolocation analysis failed:", error);
+    if (error instanceof Error) {
+      console.error("Error message:", error.message);
+    }
   }
 }
 
@@ -168,8 +221,8 @@ async function hybridSecurityPolicyExample() {
     maxRiskScore: 75,
 
     // Detection settings
-    vpnDetection: 2, // Enhanced VPN detection
-    requireASN: true, // Always get ISP/ASN data
+    detectionMode: "comprehensive" as const,
+    enrichData: true,
 
     // Tagging
     customTag: "hybrid-security-policy",
@@ -178,7 +231,7 @@ async function hybridSecurityPolicyExample() {
   console.log("Security Policy:");
   console.log(`  Blocked Countries: ${securityPolicy.blockedCountries.join(", ")}`);
   console.log(`  Max Risk Score: ${securityPolicy.maxRiskScore}%`);
-  console.log(`  VPN Detection: Level ${securityPolicy.vpnDetection}`);
+  console.log(`  Detection Mode: ${securityPolicy.detectionMode}`);
   console.log("");
 
   try {
@@ -187,50 +240,57 @@ async function hybridSecurityPolicyExample() {
     for (const [label, ip] of Object.entries(testIPs)) {
       console.log(`Evaluating ${label} (${ip}) against security policy...`);
 
-      const result = await client.check.checkAddress(ip, {
-        asnData: securityPolicy.requireASN,
+      const result = await client.check(ip, {
+        enrich: {
+          location: true,
+          network: true,
+          risk: "detailed",
+          lastSeen: true
+        },
         blockedCountries: securityPolicy.blockedCountries,
         allowedCountries: securityPolicy.allowedCountries,
-        vpnDetection: securityPolicy.vpnDetection,
-        riskData: 2,
-        queryTagging: true,
-        customTag: securityPolicy.customTag,
+        detection: {
+          mode: securityPolicy.detectionMode
+        },
+        tagging: {
+          enabled: true,
+          tag: securityPolicy.customTag
+        }
       });
-
-      const addressData = result[ip];
 
       // Custom risk evaluation
       const riskFactors = [];
       let totalRisk = 0;
 
       // Geographic risk
-      if (securityPolicy.blockedCountries.includes(addressData.isocode)) {
+      if (result.location && securityPolicy.blockedCountries.includes(result.location.countryCode || "")) {
         riskFactors.push("Blocked country");
         totalRisk += 30;
       }
 
       // Proxy/VPN risk
-      if (addressData.proxy === "yes") {
-        riskFactors.push(`Proxy/VPN (${addressData.type})`);
-        totalRisk += addressData.type === "VPN" ? 25 : 20;
+      if (result.isProxy) {
+        riskFactors.push(`Proxy (${result.detection.type || "Unknown type"})`);
+        totalRisk += 20;
+      }
+      
+      if (result.isVPN) {
+        riskFactors.push("VPN");
+        totalRisk += 25;
       }
 
       // Risk score
-      if (addressData.risk && addressData.risk > securityPolicy.maxRiskScore) {
-        riskFactors.push(`High risk score (${addressData.risk}%)`);
+      if (result.risk.score > securityPolicy.maxRiskScore) {
+        riskFactors.push(`High risk score (${result.risk.score}%)`);
         totalRisk += 20;
       }
 
-      // Mobile/suspicious patterns
-      if (addressData.mobile) {
-        riskFactors.push("Mobile connection");
-        totalRisk += 5;
-      }
+      // Determine decision based on total risk
+      const decision = totalRisk > 50 ? "BLOCK" : "ALLOW";
 
-      const decision = result.block === "yes" || totalRisk > 50 ? "BLOCK" : "ALLOW";
-
-      console.log(`  Country: ${addressData.country} (${addressData.isocode})`);
-      console.log(`  Risk Score: ${addressData.risk || "N/A"}%`);
+      console.log(`  Country: ${result.location?.country || "Unknown"} (${result.location?.countryCode || "N/A"})`);
+      console.log(`  Risk Score: ${result.risk.score}%`);
+      console.log(`  Risk Level: ${result.risk.level}`);
       console.log(`  Risk Factors: ${riskFactors.length > 0 ? riskFactors.join(", ") : "None"}`);
       console.log(`  Total Risk: ${totalRisk}%`);
       console.log(`  Decision: ${decision === "BLOCK" ? "🚨" : "✅"} ${decision}`);
@@ -238,8 +298,8 @@ async function hybridSecurityPolicyExample() {
       checkResults.push({
         label,
         ip,
-        country: addressData.country,
-        risk: addressData.risk || 0,
+        country: result.location?.country || "Unknown",
+        risk: result.risk.score,
         decision,
         riskFactors,
       });
@@ -265,12 +325,15 @@ async function hybridSecurityPolicyExample() {
       });
     }
   } catch (error) {
-    console.error("Hybrid security policy example failed:", error.message);
+    console.error("Hybrid security policy example failed:", error);
+    if (error instanceof Error) {
+      console.error("Error message:", error.message);
+    }
   }
 }
 
 async function main() {
-  console.log("🚀 ProxyCheck.io TypeScript SDK - Country Filtering Examples\n");
+  console.log("🚀 ProxyCheck.io TypeScript SDK - Country Filtering Examples (v0.9.2)\n");
 
   try {
     await countryBlockingExample();

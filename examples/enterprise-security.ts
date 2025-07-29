@@ -5,17 +5,17 @@
  * compliance features, and advanced threat protection using the ProxyCheck.io SDK.
  */
 
-import { ProxyCheckClient } from "../src";
+import { ProxyCheck } from "../src";
 
 // Enterprise Security Manager
 class EnterpriseSecurityManager {
-  private client: ProxyCheckClient;
+  private client: ProxyCheck;
   private securityPolicies: Array<SecurityPolicy>;
   private auditLog: Array<AuditEntry> = [];
   private complianceSettings: ComplianceSettings;
 
   constructor(config: EnterpriseConfig) {
-    this.client = new ProxyCheckClient({
+    this.client = new ProxyCheck({
       apiKey: config.apiKey,
       tlsSecurity: true,
       userAgent: `${config.organizationName}-Security/${config.version}`,
@@ -152,31 +152,28 @@ class EnterpriseSecurityManager {
     request: AccessRequest,
   ): Promise<PolicyResult> {
     try {
-      const result = await this.client.check.checkAddress(request.sourceIP, {
-        asnData: true,
+      const result = await this.client.check(request.sourceIP, {
+        enrich: { location: true, network: true },
       });
 
-      const ipData = result[request.sourceIP];
-      if (ipData && typeof ipData === "object") {
-        const country = ipData.isocode || "unknown";
+      const country = result.location?.countryCode || "unknown";
 
-        if (policy.blockedCountries?.includes(country)) {
-          return {
-            policy,
-            action: "block",
-            reason: `Access from blocked country: ${country}`,
-            riskScore: 90,
-          };
-        }
+      if (policy.blockedCountries?.includes(country)) {
+        return {
+          policy,
+          action: "block",
+          reason: `Access from blocked country: ${country}`,
+          riskScore: 90,
+        };
+      }
 
-        if (policy.allowedCountries && !policy.allowedCountries.includes(country)) {
-          return {
-            policy,
-            action: "block",
-            reason: `Access from non-allowed country: ${country}`,
-            riskScore: 85,
-          };
-        }
+      if (policy.allowedCountries && !policy.allowedCountries.includes(country)) {
+        return {
+          policy,
+          action: "block",
+          reason: `Access from non-allowed country: ${country}`,
+          riskScore: 85,
+        };
       }
 
       return {
@@ -200,23 +197,20 @@ class EnterpriseSecurityManager {
     request: AccessRequest,
   ): Promise<PolicyResult> {
     try {
-      const result = await this.client.check.checkAddress(request.sourceIP, {
-        vpnDetection: 3,
-        riskData: 2,
+      const result = await this.client.check(request.sourceIP, {
+        detection: { mode: "comprehensive" },
+        enrich: { risk: "detailed" },
       });
 
-      const ipData = result[request.sourceIP];
-      if (ipData && typeof ipData === "object") {
-        if (ipData.proxy === "yes") {
-          const severity = ipData.type === "TOR" ? 95 : ipData.type === "VPN" ? 60 : 75;
+      if (result.isProxy || result.isVPN) {
+        const severity = result.detection.type === "TOR" ? 95 : result.isVPN ? 60 : 75;
 
-          return {
-            policy,
-            action: policy.blockProxies ? "block" : "flag",
-            reason: `Proxy detected: ${ipData.type || "unknown"}`,
-            riskScore: severity,
-          };
-        }
+        return {
+          policy,
+          action: policy.blockProxies ? "block" : "flag",
+          reason: `Proxy detected: ${result.detection.type || "unknown"}`,
+          riskScore: severity,
+        };
       }
 
       return {
@@ -240,32 +234,28 @@ class EnterpriseSecurityManager {
     request: AccessRequest,
   ): Promise<PolicyResult> {
     try {
-      const result = await this.client.check.checkAddress(request.sourceIP, {
-        riskData: 2,
-        asnData: true,
+      const result = await this.client.check(request.sourceIP, {
+        enrich: { risk: "detailed", network: true },
       });
 
-      const ipData = result[request.sourceIP];
-      if (ipData && typeof ipData === "object") {
-        const riskScore = ipData.risk || 0;
+      const riskScore = result.risk?.score || 0;
 
-        if (riskScore >= (policy.riskThreshold || 80)) {
-          return {
-            policy,
-            action: "block",
-            reason: `High risk score: ${riskScore}%`,
-            riskScore,
-          };
-        }
+      if (riskScore >= (policy.riskThreshold || 80)) {
+        return {
+          policy,
+          action: "block",
+          reason: `High risk score: ${riskScore}%`,
+          riskScore,
+        };
+      }
 
-        if (riskScore >= (policy.warningThreshold || 50)) {
-          return {
-            policy,
-            action: "flag",
-            reason: `Medium risk score: ${riskScore}%`,
-            riskScore,
-          };
-        }
+      if (riskScore >= (policy.warningThreshold || 50)) {
+        return {
+          policy,
+          action: "flag",
+          reason: `Medium risk score: ${riskScore}%`,
+          riskScore,
+        };
       }
 
       return {
@@ -314,30 +304,21 @@ class EnterpriseSecurityManager {
 
   private async performThreatAnalysis(request: AccessRequest): Promise<ThreatAnalysis> {
     try {
-      const result = await this.client.check.checkAddress(request.sourceIP, {
-        vpnDetection: 3,
-        riskData: 2,
-        asnData: true,
+      const result = await this.client.check(request.sourceIP, {
+        detection: { mode: "comprehensive" },
+        enrich: { risk: "detailed", network: true, location: true },
       });
 
-      const ipData = result[request.sourceIP];
-      if (ipData && typeof ipData === "object") {
-        return {
-          isProxy: ipData.proxy === "yes",
-          proxyType: ipData.type,
-          riskScore: ipData.risk || 0,
-          country: ipData.country,
-          isocode: ipData.isocode,
-          asn: ipData.asn,
-          isp: ipData.isp,
-          lastSeen: ipData.last_seen,
-          attackHistory: ipData.attack_history,
-        };
-      }
-
       return {
-        isProxy: false,
-        riskScore: 0,
+        isProxy: result.isProxy,
+        proxyType: result.detection?.type,
+        riskScore: result.risk?.score || 0,
+        country: result.location?.country,
+        isocode: result.location?.countryCode,
+        asn: result.network?.asn,
+        isp: result.network?.provider,
+        lastSeen: result.metadata?.lastSeen,
+        attackHistory: result.risk?.attackHistory,
       };
     } catch (error) {
       return {

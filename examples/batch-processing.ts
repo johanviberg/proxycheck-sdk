@@ -2,12 +2,12 @@
  * Batch Processing Examples
  *
  * This example demonstrates how to efficiently process multiple IP addresses
- * and email addresses in batch operations.
+ * and email addresses in batch operations using the new API.
  */
 
-import { ProxyCheckClient } from "../src";
+import { ProxyCheck } from "../src";
 
-const client = new ProxyCheckClient({
+const client = new ProxyCheck({
   apiKey: process.env.PROXYCHECK_API_KEY || "your-api-key-here",
 });
 
@@ -32,53 +32,61 @@ async function batchIPProcessing() {
   console.log("📦 Batch IP Processing\n");
 
   try {
-    // Process multiple IPs with advanced options
-    const results = await client.check.checkAddresses(testIPs, {
-      vpnDetection: 2,
-      asnData: true,
-      riskData: 2,
-      queryTagging: true,
-      customTag: "batch-ip-check",
+    // Process multiple IPs with semantic options
+    const results = await client.checkBatch(testIPs, {
+      detection: {
+        mode: "comprehensive"  // comprehensive mode includes both proxy and VPN with detailed info
+      },
+      enrich: {
+        location: true,
+        network: true,
+        risk: "detailed"
+      },
+      tagging: {
+        enabled: true,
+        tag: "batch-ip-check"
+      }
     });
 
     console.log("Batch IP Results:");
     console.log("================");
 
-    for (const [address, data] of Object.entries(results)) {
-      if (address === "status") {
-        continue; // Skip status field
-      }
-
+    // Results is now a Map for easy iteration
+    for (const [address, data] of results) {
       console.log(`\n🔍 ${address}:`);
-      console.log(`   Proxy: ${data.proxy}`);
-      if (data.type) {
-        console.log(`   Type: ${data.type}`);
+      console.log(`   Proxy: ${data.isProxy ? "Yes" : "No"}`);
+      console.log(`   VPN: ${data.isVPN ? "Yes" : "No"}`);
+      if (data.detection.type) {
+        console.log(`   Type: ${data.detection.type}`);
       }
-      if (data.risk !== undefined) {
-        console.log(`   Risk: ${data.risk}%`);
+      console.log(`   Risk Level: ${data.risk.level}`);
+      console.log(`   Risk Score: ${data.risk.score}%`);
+      if (data.location) {
+        console.log(`   Country: ${data.location.country} (${data.location.countryCode})`);
       }
-      if (data.country) {
-        console.log(`   Country: ${data.country} (${data.isocode})`);
+      if (data.network?.asn) {
+        console.log(`   ASN: ${data.network.asn}`);
       }
-      if (data.asn) {
-        console.log(`   ASN: ${data.asn}`);
-      }
-      if (data.isp) {
-        console.log(`   ISP: ${data.isp}`);
+      if (data.network?.provider) {
+        console.log(`   Provider: ${data.network.provider}`);
       }
     }
 
     // Summary statistics
-    const addresses = Object.keys(results).filter((key) => key !== "status");
-    const proxyCount = addresses.filter((addr) => results[addr].proxy === "yes").length;
-    const cleanCount = addresses.length - proxyCount;
+    const proxyCount = Array.from(results.values()).filter(r => r.isProxy).length;
+    const vpnCount = Array.from(results.values()).filter(r => r.isVPN).length;
+    const cleanCount = results.size - proxyCount;
 
     console.log("\n📊 Summary:");
-    console.log(`   Total checked: ${addresses.length}`);
+    console.log(`   Total checked: ${results.size}`);
     console.log(`   Clean IPs: ${cleanCount}`);
-    console.log(`   Proxy/VPN IPs: ${proxyCount}`);
+    console.log(`   Proxy IPs: ${proxyCount}`);
+    console.log(`   VPN IPs: ${vpnCount}`);
   } catch (error) {
-    console.error("Batch IP processing failed:", error.message);
+    console.error("Batch IP processing failed:", error);
+    if (error instanceof Error) {
+      console.error("Error message:", error.message);
+    }
   }
 }
 
@@ -86,34 +94,41 @@ async function batchEmailProcessing() {
   console.log("\n📧 Batch Email Processing\n");
 
   try {
-    const results = await client.check.checkAddresses(testEmails, {
-      maskAddress: true, // Mask emails for privacy
-      queryTagging: true,
-      customTag: "batch-email-check",
+    const results = await client.checkBatch(testEmails, {
+      privacy: {
+        maskEmails: true // Mask emails for privacy
+      },
+      tagging: {
+        enabled: true,
+        tag: "batch-email-check"
+      }
     });
 
     console.log("Batch Email Results:");
     console.log("===================");
 
-    for (const [address, data] of Object.entries(results)) {
-      if (address === "status") {
-        continue;
-      }
-
+    for (const [address, data] of results) {
       console.log(`\n📮 ${address}:`);
-      console.log(`   Disposable: ${data.disposable || "unknown"}`);
-      if (data.proxy) {
-        console.log(`   Proxy: ${data.proxy}`);
+      console.log(`   Disposable: ${data.isDisposableEmail ? "Yes" : "No"}`);
+      if (data.isProxy !== undefined) {
+        console.log(`   From Proxy: ${data.isProxy ? "Yes" : "No"}`);
       }
+      console.log(`   Risk Level: ${data.risk.level}`);
     }
 
-    // Check block status
-    if (results.block) {
-      console.log(`\n🚫 Block Status: ${results.block}`);
-      console.log(`   Block Reason: ${results.block_reason}`);
-    }
+    // Count disposable emails
+    const disposableCount = Array.from(results.values())
+      .filter(r => r.isDisposableEmail === true).length;
+    
+    console.log("\n📊 Summary:");
+    console.log(`   Total emails: ${results.size}`);
+    console.log(`   Disposable: ${disposableCount}`);
+    console.log(`   Regular: ${results.size - disposableCount}`);
   } catch (error) {
-    console.error("Batch email processing failed:", error.message);
+    console.error("Batch email processing failed:", error);
+    if (error instanceof Error) {
+      console.error("Error message:", error.message);
+    }
   }
 }
 
@@ -121,39 +136,43 @@ async function mixedBatchProcessing() {
   console.log("\n🔀 Mixed Batch Processing (IPs + Emails)\n");
 
   try {
-    const results = await client.check.checkAddresses(mixedAddresses, {
-      vpnDetection: 1,
-      riskData: 1,
-      asnData: true,
-      queryTagging: true,
-      customTag: "mixed-batch-check",
+    const results = await client.checkBatch(mixedAddresses, {
+      detection: {
+        mode: "both"
+      },
+      enrich: {
+        location: true,
+        network: true,
+        risk: "basic"
+      },
+      tagging: {
+        enabled: true,
+        tag: "mixed-batch-check"
+      }
     });
 
     console.log("Mixed Batch Results:");
     console.log("===================");
 
-    for (const [address, data] of Object.entries(results)) {
-      if (address === "status") {
-        continue;
-      }
-
+    for (const [address, data] of results) {
       const isEmail = address.includes("@");
       console.log(`\n${isEmail ? "📧" : "🌐"} ${address}:`);
 
       if (isEmail) {
-        console.log(`   Disposable: ${data.disposable || "unknown"}`);
+        console.log(`   Disposable: ${data.isDisposableEmail ? "Yes" : "No"}`);
       } else {
-        console.log(`   Proxy: ${data.proxy}`);
-        if (data.risk !== undefined) {
-          console.log(`   Risk: ${data.risk}%`);
-        }
-        if (data.country) {
-          console.log(`   Country: ${data.country}`);
+        console.log(`   Proxy: ${data.isProxy ? "Yes" : "No"}`);
+        console.log(`   Risk: ${data.risk.score}% (${data.risk.level})`);
+        if (data.location) {
+          console.log(`   Country: ${data.location.country}`);
         }
       }
     }
   } catch (error) {
-    console.error("Mixed batch processing failed:", error.message);
+    console.error("Mixed batch processing failed:", error);
+    if (error instanceof Error) {
+      console.error("Error message:", error.message);
+    }
   }
 }
 
@@ -164,21 +183,26 @@ async function robustBatchProcessing() {
   const addresses = ["8.8.8.8", "invalid-ip", "test@example.com", "1.2.3.4"];
 
   // Process addresses one by one with individual error handling
-  const results: Array<{ address: string; result?: any; error?: string }> = [];
+  const results: Array<{ address: string; result?: import("../src").CheckResult; error?: string }> = [];
 
   for (const address of addresses) {
     try {
       console.log(`Checking ${address}...`);
-      const result = await client.check.checkAddress(address, {
-        vpnDetection: 1,
-        riskData: 1,
+      const result = await client.check(address, {
+        detection: {
+          mode: "both"
+        },
+        enrich: {
+          risk: "basic"
+        }
       });
 
       results.push({ address, result });
       console.log(`✅ ${address}: Success`);
     } catch (error) {
-      results.push({ address, error: error.message });
-      console.log(`❌ ${address}: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      results.push({ address, error: errorMessage });
+      console.log(`❌ ${address}: ${errorMessage}`);
     }
   }
 
@@ -189,22 +213,12 @@ async function robustBatchProcessing() {
     if (error) {
       console.log(`❌ ${address}: Failed - ${error}`);
     } else if (result) {
-      // Check if the API returned an error status
-      if (result.status === "error") {
-        console.log(`❌ ${address}: API Error - ${result.message || "Unknown error"}`);
+      if (address.includes("@")) {
+        console.log(
+          `📧 ${address}: ${result.isDisposableEmail ? "Disposable" : "Regular"}`,
+        );
       } else {
-        const addressData = result[address];
-        if (addressData) {
-          if (address.includes("@")) {
-            console.log(
-              `📧 ${address}: ${addressData.disposable === "yes" ? "Disposable" : "Regular"}`,
-            );
-          } else {
-            console.log(`🌐 ${address}: ${addressData.proxy === "yes" ? "Proxy/VPN" : "Clean"}`);
-          }
-        } else {
-          console.log(`⚠️ ${address}: No data returned for this address`);
-        }
+        console.log(`🌐 ${address}: ${result.isProxy ? "Proxy/VPN" : "Clean"} (Risk: ${result.risk.level})`);
       }
     } else {
       console.log(`⚠️ ${address}: No result received`);
@@ -224,7 +238,9 @@ async function rateLimitDemo() {
   try {
     // This might trigger rate limiting depending on your plan
     const promises = addresses.map((ip) =>
-      client.check.checkAddress(ip).catch((error) => ({ error: error.message })),
+      client.check(ip).catch((error) => ({ 
+        error: error instanceof Error ? error.message : String(error) 
+      })),
     );
 
     const results = await Promise.all(promises);
@@ -232,8 +248,8 @@ async function rateLimitDemo() {
 
     console.log(`\nCompleted in ${endTime - startTime}ms`);
 
-    const successful = results.filter((r) => !r.error).length;
-    const failed = results.filter((r) => r.error).length;
+    const successful = results.filter((r) => !("error" in r)).length;
+    const failed = results.filter((r) => "error" in r).length;
 
     console.log(`✅ Successful: ${successful}`);
     console.log(`❌ Failed: ${failed}`);
@@ -243,15 +259,19 @@ async function rateLimitDemo() {
     if (rateLimitInfo) {
       console.log("\n📊 Rate Limit Status:");
       console.log(`   Remaining: ${rateLimitInfo.remaining}`);
-      console.log(`   Reset: ${rateLimitInfo.reset}`);
+      console.log(`   Limit: ${rateLimitInfo.limit}`);
+      console.log(`   Reset: ${new Date(Number(rateLimitInfo.reset) * 1000).toLocaleString()}`);
     }
   } catch (error) {
-    console.error("Rate limit demo failed:", error.message);
+    console.error("Rate limit demo failed:", error);
+    if (error instanceof Error) {
+      console.error("Error message:", error.message);
+    }
   }
 }
 
 async function main() {
-  console.log("🚀 ProxyCheck.io TypeScript SDK - Batch Processing Examples\n");
+  console.log("🚀 ProxyCheck.io TypeScript SDK - Batch Processing Examples (v0.9.2)\n");
 
   try {
     await batchIPProcessing();
@@ -263,6 +283,9 @@ async function main() {
     console.log("\n✨ All batch processing examples completed!");
   } catch (error) {
     console.error("Examples failed:", error);
+    if (error instanceof Error) {
+      console.error("Error details:", error.message);
+    }
   }
 }
 

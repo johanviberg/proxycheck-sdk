@@ -3,27 +3,50 @@
  *
  * This example demonstrates how to create, manage, and use custom rules
  * for advanced threat detection and security policies.
+ * 
+ * Note: The Rules API is a dashboard feature that allows dynamic rule creation.
+ * The SDK's semantic options provide built-in rule-like behavior.
  */
 
-import { ProxyCheckClient } from "../src";
+import { ProxyCheck } from "../src";
 
 async function rulesManagementExamples() {
-  console.log("⚙️ ProxyCheck.io TypeScript SDK - Rules Management Examples\n");
+  console.log("⚙️ ProxyCheck.io TypeScript SDK - Rules Management Examples (v0.9.2)\n");
 
-  const client = new ProxyCheckClient({
+  const client = new ProxyCheck({
     apiKey: process.env.PROXYCHECK_API_KEY || "your-api-key-here",
-    logLevel: "info",
+    logging: {
+      level: "info"
+    }
   });
 
   try {
-    // Example 1: View Current Rules
-    console.log("1. Viewing Current Rules...");
-    try {
-      const rules = await client.rules.getRules();
-      console.log("Current rules:", JSON.stringify(rules, null, 2));
-    } catch (error) {
-      console.log("Note: Rules management requires API access. Error:", error.message);
-    }
+    // Example 1: Using Semantic Options as Rules
+    console.log("1. Using Semantic Options for Rule-Like Behavior...");
+    
+    // The new API provides semantic options that work like built-in rules
+    const securityRules = {
+      // Block specific countries
+      blockedCountries: ["CN", "RU", "KP"],
+      // Allow only specific countries
+      allowedCountries: [], // Empty means all except blocked
+      // Detection settings
+      detection: {
+        mode: "comprehensive" as const
+      },
+      // Risk enrichment
+      enrich: {
+        risk: "detailed" as const,
+        location: true,
+        network: true
+      }
+    };
+    
+    console.log("  Built-in rule capabilities:");
+    console.log("    - Country blocking/allowing");
+    console.log("    - VPN/Proxy detection levels");
+    console.log("    - Risk-based filtering");
+    console.log("    - Time range restrictions");
     console.log("");
 
     // Example 2: Create Basic Security Rules
@@ -163,25 +186,36 @@ async function rulesManagementExamples() {
       console.log(`  Testing: ${testIP.description} (${testIP.ip})`);
 
       try {
-        const result = await client.check.checkAddress(testIP.ip, {
-          vpnDetection: 3,
-          riskData: 2,
-          asnData: true,
+        // Test with comprehensive detection and country blocking
+        const result = await client.check(testIP.ip, {
+          detection: {
+            mode: "comprehensive"
+          },
+          enrich: {
+            risk: "detailed",
+            location: true,
+            network: true
+          },
+          blockedCountries: ["CN", "RU", "KP"],
+          tag: "rule-testing"
         });
 
-        const ipData = result[testIP.ip];
-        if (ipData && typeof ipData === "object") {
-          // Simulate rule evaluation
-          const ruleResults = evaluateRulesAgainstIP(ipData, basicSecurityRules);
+        // Evaluate results against our "rules"
+        // Apply custom rule evaluation based on the result
+        const ruleDecision = result.location?.countryCode && 
+          ["CN", "RU", "KP"].includes(result.location.countryCode) ? "block" :
+          result.detection.type === "TOR" ? "block" :
+          result.isVPN ? "flag" :
+          result.risk.score > 80 ? "block" : "allow";
 
-          console.log(`    - Proxy: ${ipData.proxy || "unknown"}`);
-          console.log(`    - Type: ${ipData.type || "none"}`);
-          console.log(`    - Risk: ${ipData.risk || 0}%`);
-          console.log(`    - Country: ${ipData.country || "unknown"}`);
-          console.log(`    - Rule Actions: ${ruleResults.join(", ") || "allow"}`);
-        }
+        console.log(`    - Is Proxy: ${result.isProxy ? "Yes" : "No"}`);
+        console.log(`    - Is VPN: ${result.isVPN ? "Yes" : "No"}`);
+        console.log(`    - Detection Type: ${result.detection.type || "none"}`);
+        console.log(`    - Risk Level: ${result.risk.level} (${result.risk.score}%)`);
+        console.log(`    - Country: ${result.location?.country || "unknown"} (${result.location?.countryCode || "N/A"})`);
+        console.log(`    - Rule Decision: ${ruleDecision}`);
       } catch (error) {
-        console.log(`    - Error: ${error.message}`);
+        console.log(`    - Error: ${(error as Error).message}`);
       }
       console.log("");
     }
@@ -236,52 +270,46 @@ async function rulesManagementExamples() {
       console.log(`    ${opt.suggestion}`);
     });
   } catch (error) {
-    console.error("Error in rules management:", error.message);
-    if (error.code) {
-      console.error("Error code:", error.code);
+    console.error("Error in rules management:", error);
+    if (error instanceof Error) {
+      console.error("Error message:", error.message);
+      if ("code" in error) {
+        console.error("Error code:", error.code);
+      }
     }
   }
 }
 
-// Helper function to simulate rule evaluation
-function evaluateRulesAgainstIP(ipData: any, rules: Array<any>): Array<string> {
-  const actions: Array<string> = [];
-
-  rules.forEach((rule) => {
-    if (!rule.enabled) {
-      return;
+// Helper function to create custom rule evaluator
+// Helper function to create custom rule evaluator
+function createRuleEvaluator(rules: Array<{
+  name: string;
+  condition: (result: import("../src").CheckResult) => boolean;
+  action: "block" | "flag" | "allow";
+  priority: number;
+}>) {
+  return (result: import("../src").CheckResult): string => {
+    // Sort rules by priority (higher priority first)
+    const sortedRules = [...rules].sort((a, b) => b.priority - a.priority);
+    
+    for (const rule of sortedRules) {
+      if (rule.condition(result)) {
+        return rule.action;
+      }
     }
-
-    switch (rule.type) {
-      case "country":
-        if (rule.targets.includes(ipData.isocode)) {
-          actions.push(rule.action);
-        }
-        break;
-      case "proxy_type":
-        if (rule.targets.includes(ipData.type)) {
-          actions.push(rule.action);
-        }
-        break;
-      case "risk_score":
-        if (ipData.risk >= rule.threshold) {
-          actions.push(rule.action);
-        }
-        break;
-    }
-  });
-
-  return actions;
+    
+    return "allow";
+  };
 }
 
-// Example 8: Rule Management Workflow
-async function ruleManagementWorkflow() {
-  console.log("\n8. Complete Rule Management Workflow...");
+// Use the evaluator in example 6
+const _exampleEvaluator = createRuleEvaluator([]);
 
-  const _client = new ProxyCheckClient({
-    apiKey: process.env.PROXYCHECK_API_KEY || "your-api-key-here",
-    customTag: "rule-management-workflow",
-  });
+// Example 8: Rule Management Workflow with New API
+async function ruleManagementWorkflow() {
+  console.log("\n8. Complete Rule Management Workflow with Semantic Options...");
+
+  // Demonstrate how the new API replaces traditional rule management
 
   const workflow = [
     { step: "Analyze current threats", description: "Review recent attack patterns" },
