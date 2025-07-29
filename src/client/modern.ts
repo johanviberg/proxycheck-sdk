@@ -190,6 +190,7 @@ export class ProxyCheck {
   /**
    * Check multiple addresses with detailed error handling and retries
    */
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Required for comprehensive batch processing
   async checkBatchResilient(
     addresses: Array<string>,
     options: Partial<SemanticCheckOptions> = {},

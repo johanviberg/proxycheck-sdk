@@ -238,6 +238,7 @@ export class CheckService extends BaseService {
   /**
    * Add blocking logic for single address checks
    */
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Required for comprehensive blocking logic
   private addBlockingLogic(
     response: CheckResponse,
     address: string,

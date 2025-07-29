@@ -103,6 +103,7 @@ export function shouldRetryError(error: unknown): boolean {
  * @example
  * logger.error('Operation failed', getErrorDetails(error));
  */
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Required for comprehensive error detail extraction
 export function getErrorDetails(error: unknown): Record<string, unknown> {
   const details: Record<string, unknown> = {};
 

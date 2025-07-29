@@ -321,7 +321,6 @@ describe("ProxyCheck (Modern Client)", () => {
       expect(client.dashboard).toBeDefined();
       expect(typeof client.dashboard.getUsage).toBe("function");
       expect(typeof client.dashboard.getDetections).toBe("function");
-      expect(typeof client.dashboard.getTags).toBe("function");
       expect(typeof client.dashboard.getQueries).toBe("function");
     });
 

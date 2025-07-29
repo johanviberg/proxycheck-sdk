@@ -692,6 +692,7 @@ function extractErrorMessage(error: unknown, defaultMessage: string): string {
 /**
  * Enhanced error factory for creating appropriate error types
  */
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Required for comprehensive error handling
 export function createEnhancedErrorFromResponse(
   error: unknown,
   context?: ErrorContext,

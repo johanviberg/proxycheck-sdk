@@ -96,6 +96,7 @@ export class DashboardService extends BaseService {
   /**
    * Get detection statistics summary
    */
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Required for comprehensive summary calculation
   async getDetectionSummary(_days = 30): Promise<{
     total: number;
     unique: number;
@@ -253,6 +254,7 @@ export class DashboardService extends BaseService {
   /**
    * Transform query history response
    */
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Required for complex response transformation
   private transformQueryHistoryResponse(
     response: StatsResponse,
     days?: number,

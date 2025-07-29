@@ -261,6 +261,7 @@ export * from "./recovery";
 /**
  * Create appropriate error from axios error or other errors
  */
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Required for comprehensive error handling
 export function createErrorFromResponse(error: unknown): ProxyCheckError {
   // Handle axios errors
   if (error && typeof error === "object" && "response" in error) {

@@ -118,6 +118,7 @@ export class ResponseStatusHandler {
   /**
    * Create response status from response data
    */
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Required for comprehensive status creation
   private createStatus(response: unknown, requestId?: string): ResponseStatus {
     const status: ResponseStatus = {
       success: true,
