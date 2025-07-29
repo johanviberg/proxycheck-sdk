@@ -12,8 +12,10 @@ export class ProxyCheckError extends Error {
   public readonly code: string;
   public readonly statusCode?: number;
   public readonly timestamp: Date;
+  public $retryable = false;
+  public $metadata: Record<string, unknown> = {};
 
-  constructor(message: string, code: string, statusCode?: number) {
+  constructor(message: string, code: string, statusCode?: number, cause?: unknown) {
     super(message);
     this.name = "ProxyCheckError";
     this.code = code;
@@ -21,6 +23,16 @@ export class ProxyCheckError extends Error {
       this.statusCode = statusCode;
     }
     this.timestamp = new Date();
+
+    // Store the cause if provided
+    if (cause !== undefined) {
+      // Using type assertion for ES2020 compatibility (no native ErrorOptions)
+      // biome-ignore lint/suspicious/noExplicitAny: Required for ES2020 compatibility
+      (this as any).cause = cause;
+    }
+
+    // Critical for TypeScript: Maintain proper prototype chain
+    Object.setPrototypeOf(this, ProxyCheckError.prototype);
 
     // Maintains proper stack trace for where our error was thrown
     if (Error.captureStackTrace) {
@@ -50,8 +62,14 @@ export class ProxyCheckAPIError extends ProxyCheckError {
   public readonly response?: ErrorResponse;
   public readonly requestId?: string;
 
-  constructor(message: string, statusCode: number, response?: ErrorResponse, requestId?: string) {
-    super(message, ERROR_CODES.API_ERROR, statusCode);
+  constructor(
+    message: string,
+    statusCode: number,
+    response?: ErrorResponse,
+    requestId?: string,
+    cause?: unknown,
+  ) {
+    super(message, ERROR_CODES.API_ERROR, statusCode, cause);
     this.name = "ProxyCheckAPIError";
     if (response !== undefined) {
       this.response = response;
@@ -59,11 +77,17 @@ export class ProxyCheckAPIError extends ProxyCheckError {
     if (requestId !== undefined) {
       this.requestId = requestId;
     }
+    Object.setPrototypeOf(this, ProxyCheckAPIError.prototype);
   }
 
-  static fromResponse(statusCode: number, response: ErrorResponse, requestId?: string) {
+  static fromResponse(
+    statusCode: number,
+    response: ErrorResponse,
+    requestId?: string,
+    cause?: unknown,
+  ) {
     const message = response.message || response.error || `API error: ${statusCode}`;
-    return new ProxyCheckAPIError(message, statusCode, response, requestId);
+    return new ProxyCheckAPIError(message, statusCode, response, requestId, cause);
   }
 }
 
@@ -80,8 +104,9 @@ export class ProxyCheckValidationError extends ProxyCheckError {
     field?: string,
     value?: unknown,
     validationErrors?: Array<{ path: string; message: string }>,
+    cause?: unknown,
   ) {
-    super(message, ERROR_CODES.VALIDATION_ERROR);
+    super(message, ERROR_CODES.VALIDATION_ERROR, undefined, cause);
     this.name = "ProxyCheckValidationError";
     if (field !== undefined) {
       this.field = field;
@@ -92,6 +117,7 @@ export class ProxyCheckValidationError extends ProxyCheckError {
     if (validationErrors !== undefined) {
       this.validationErrors = validationErrors;
     }
+    Object.setPrototypeOf(this, ProxyCheckValidationError.prototype);
   }
 }
 
@@ -104,13 +130,24 @@ export class ProxyCheckRateLimitError extends ProxyCheckError {
   public readonly reset: Date;
   public readonly retryAfter: number;
 
-  constructor(message: string, limit: number, remaining: number, reset: Date, retryAfter: number) {
-    super(message, ERROR_CODES.RATE_LIMIT, 429);
+  constructor(
+    message: string,
+    limit: number,
+    remaining: number,
+    reset: Date,
+    retryAfter: number,
+    cause?: unknown,
+  ) {
+    super(message, ERROR_CODES.RATE_LIMIT, 429, cause);
     this.name = "ProxyCheckRateLimitError";
     this.limit = limit;
     this.remaining = remaining;
     this.reset = reset;
     this.retryAfter = retryAfter;
+    this.$retryable = true;
+    this.$metadata["retryAfter"] = retryAfter;
+    this.$metadata["reset"] = reset.toISOString();
+    Object.setPrototypeOf(this, ProxyCheckRateLimitError.prototype);
   }
 }
 
@@ -120,12 +157,14 @@ export class ProxyCheckRateLimitError extends ProxyCheckError {
 export class ProxyCheckNetworkError extends ProxyCheckError {
   public readonly originalError?: Error;
 
-  constructor(message: string, originalError?: Error) {
-    super(message, ERROR_CODES.NETWORK_ERROR);
+  constructor(message: string, originalError?: Error, cause?: unknown) {
+    super(message, ERROR_CODES.NETWORK_ERROR, undefined, cause || originalError);
     this.name = "ProxyCheckNetworkError";
     if (originalError !== undefined) {
       this.originalError = originalError;
     }
+    this.$retryable = true;
+    Object.setPrototypeOf(this, ProxyCheckNetworkError.prototype);
   }
 }
 
@@ -133,9 +172,10 @@ export class ProxyCheckNetworkError extends ProxyCheckError {
  * Authentication errors
  */
 export class ProxyCheckAuthenticationError extends ProxyCheckError {
-  constructor(message = "Invalid or missing API key") {
-    super(message, ERROR_CODES.AUTHENTICATION_ERROR, 401);
+  constructor(message = "Invalid or missing API key", cause?: unknown) {
+    super(message, ERROR_CODES.AUTHENTICATION_ERROR, 401, cause);
     this.name = "ProxyCheckAuthenticationError";
+    Object.setPrototypeOf(this, ProxyCheckAuthenticationError.prototype);
   }
 }
 
@@ -145,10 +185,13 @@ export class ProxyCheckAuthenticationError extends ProxyCheckError {
 export class ProxyCheckTimeoutError extends ProxyCheckError {
   public readonly timeout: number;
 
-  constructor(message: string, timeout: number) {
-    super(message, ERROR_CODES.TIMEOUT_ERROR);
+  constructor(message: string, timeout: number, cause?: unknown) {
+    super(message, ERROR_CODES.TIMEOUT_ERROR, undefined, cause);
     this.name = "ProxyCheckTimeoutError";
     this.timeout = timeout;
+    this.$retryable = true;
+    this.$metadata["timeout"] = timeout;
+    Object.setPrototypeOf(this, ProxyCheckTimeoutError.prototype);
   }
 }
 
@@ -174,6 +217,48 @@ export function isValidationError(error: unknown): error is ProxyCheckValidation
 }
 
 /**
+ * List operation errors
+ */
+export class ProxyCheckListError extends ProxyCheckError {
+  public readonly operation?: string;
+  public readonly listType?: "whitelist" | "blacklist";
+  public readonly entries?: Array<string>;
+
+  constructor(
+    message: string,
+    operation?: string,
+    listType?: "whitelist" | "blacklist",
+    entries?: Array<string>,
+    cause?: unknown,
+  ) {
+    super(message, ERROR_CODES.API_ERROR, undefined, cause);
+    this.name = "ProxyCheckListError";
+    if (operation !== undefined) {
+      this.operation = operation;
+    }
+    if (listType !== undefined) {
+      this.listType = listType;
+    }
+    if (entries !== undefined) {
+      this.entries = entries;
+    }
+    Object.setPrototypeOf(this, ProxyCheckListError.prototype);
+  }
+}
+
+/**
+ * Type guard to check if an error is a list error
+ */
+export function isListError(error: unknown): error is ProxyCheckListError {
+  return error instanceof ProxyCheckListError;
+}
+
+// Export enhanced error classes
+export * from "./enhanced";
+export * from "./handler";
+export * from "./recovery";
+
+/**
  * Create appropriate error from axios error or other errors
  */
 export function createErrorFromResponse(error: unknown): ProxyCheckError {
@@ -197,6 +282,7 @@ export function createErrorFromResponse(error: unknown): ProxyCheckError {
         remaining,
         reset,
         retryAfter,
+        error,
       );
     }
 
@@ -206,18 +292,18 @@ export function createErrorFromResponse(error: unknown): ProxyCheckError {
         data && typeof data === "object" && "message" in data && typeof data.message === "string"
           ? data.message
           : "Authentication failed";
-      return new ProxyCheckAuthenticationError(message);
+      return new ProxyCheckAuthenticationError(message, error);
     }
 
     // Handle other API errors
     const errorResponse = data as ErrorResponse;
-    return ProxyCheckAPIError.fromResponse(status, errorResponse, headers["x-request-id"]);
+    return ProxyCheckAPIError.fromResponse(status, errorResponse, headers["x-request-id"], error);
   }
 
   // Handle timeout errors
   if (error && typeof error === "object" && "code" in error && error.code === "ECONNABORTED") {
     const timeout = "timeout" in error && typeof error.timeout === "number" ? error.timeout : 0;
-    return new ProxyCheckTimeoutError("Request timed out", timeout);
+    return new ProxyCheckTimeoutError("Request timed out", timeout, error);
   }
 
   if (
@@ -227,13 +313,13 @@ export function createErrorFromResponse(error: unknown): ProxyCheckError {
     typeof error.message === "string" &&
     error.message.includes("timeout")
   ) {
-    return new ProxyCheckTimeoutError("Request timed out", 0);
+    return new ProxyCheckTimeoutError("Request timed out", 0, error);
   }
 
   // Handle network errors
   if (error && typeof error === "object" && "request" in error) {
     const originalError = error instanceof Error ? error : undefined;
-    return new ProxyCheckNetworkError("Network error occurred", originalError);
+    return new ProxyCheckNetworkError("Network error occurred", originalError, error);
   }
 
   // Default to base error
@@ -241,5 +327,5 @@ export function createErrorFromResponse(error: unknown): ProxyCheckError {
     error && typeof error === "object" && "message" in error && typeof error.message === "string"
       ? error.message
       : "An unknown error occurred";
-  return new ProxyCheckError(message, ERROR_CODES.API_ERROR);
+  return new ProxyCheckError(message, ERROR_CODES.API_ERROR, undefined, error);
 }
