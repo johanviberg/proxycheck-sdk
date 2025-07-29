@@ -49,6 +49,7 @@ Thumbs.db
 CLAUDE.md
 TODOS.md
 PROXYCHECK.md
+.internal/
 
 # Lefthook
 .lefthook-local.yml
