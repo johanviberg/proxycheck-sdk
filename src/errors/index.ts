@@ -200,6 +200,27 @@ export function isValidationError(error: unknown): error is ProxyCheckValidation
 }
 
 /**
+ * Type guard to check if an error is a network error
+ */
+export function isNetworkError(error: unknown): error is ProxyCheckNetworkError {
+  return error instanceof ProxyCheckNetworkError;
+}
+
+/**
+ * Type guard to check if an error is a timeout error
+ */
+export function isTimeoutError(error: unknown): error is ProxyCheckTimeoutError {
+  return error instanceof ProxyCheckTimeoutError;
+}
+
+/**
+ * Type guard to check if an error is an authentication error
+ */
+export function isAuthenticationError(error: unknown): error is ProxyCheckAuthenticationError {
+  return error instanceof ProxyCheckAuthenticationError;
+}
+
+/**
  * Create appropriate error from axios error or other errors
  */
 export function createErrorFromResponse(error: unknown): ProxyCheckError {

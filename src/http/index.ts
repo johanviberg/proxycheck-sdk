@@ -2,6 +2,7 @@
  * HTTP Client with retry logic and rate limiting
  */
 
+import { randomUUID } from "node:crypto";
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from "axios";
 import { type ProxyCheckError, createErrorFromResponse, isRateLimitError } from "../errors";
 import type { Logger } from "../logging";
@@ -385,7 +386,7 @@ export class HttpClient {
    * Generate unique request ID for logging
    */
   private generateRequestId(): string {
-    return `req_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    return `req_${randomUUID()}`;
   }
 
   /**

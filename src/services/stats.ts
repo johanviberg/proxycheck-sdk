@@ -154,8 +154,8 @@ export class StatsService extends BaseService {
       queryParams["json"] = 1;
     }
 
-    // Add pagination parameters for detections
-    if (statType === "detections") {
+    // Add pagination parameters for detections and queries
+    if (statType === "detections" || statType === "queries") {
       if (validatedOptions.limit !== undefined) {
         queryParams["limit"] = validatedOptions.limit;
       }

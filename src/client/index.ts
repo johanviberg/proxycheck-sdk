@@ -107,20 +107,6 @@ export class ProxyCheckClient {
   }
 
   /**
-   * Get the HTTP client instance (for services)
-   */
-  getHttpClient(): HttpClient {
-    return this._http;
-  }
-
-  /**
-   * Get the config manager instance (for services)
-   */
-  getConfigManager(): ConfigManager {
-    return this._config;
-  }
-
-  /**
    * Check if the client is properly configured
    */
   isConfigured(): boolean {

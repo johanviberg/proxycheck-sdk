@@ -164,7 +164,7 @@ export class CheckService extends BaseService {
   async isVPN(address: string, options: ProxyCheckOptions = {}): Promise<boolean> {
     const response = await this.checkAddress(address, { ...options, vpnDetection: 1 });
     const result = this.getFirstAddressResult(response);
-    return result?.type === "VPN";
+    return result?.type === "VPN" || result?.vpn === "yes";
   }
 
   /**

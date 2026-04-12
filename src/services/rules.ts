@@ -22,23 +22,28 @@ export class RulesService extends BaseService {
   }
 
   /**
-   * Add a new rule
+   * Add a new rule (validates name and conditions)
    */
   async addRule(name: string, conditions: string): Promise<RuleResponse> {
+    this.validateRuleName(name);
+    this.validateRuleConditions(conditions);
     return this.manageRule("add", name, conditions);
   }
 
   /**
-   * Remove a rule
+   * Remove a rule (validates name)
    */
   async removeRule(name: string): Promise<RuleResponse> {
+    this.validateRuleName(name);
     return this.manageRule("remove", name);
   }
 
   /**
-   * Set/update a rule
+   * Set/update a rule (validates name and conditions)
    */
   async setRule(name: string, conditions: string): Promise<RuleResponse> {
+    this.validateRuleName(name);
+    this.validateRuleConditions(conditions);
     return this.manageRule("set", name, conditions);
   }
 
@@ -50,50 +55,35 @@ export class RulesService extends BaseService {
   }
 
   /**
-   * Test a rule
+   * Test a rule (validates name)
    */
   async testRule(name: string): Promise<RuleResponse> {
+    this.validateRuleName(name);
     return this.manageRule("test", name);
   }
 
-  /**
-   * Create a rule with validation
-   */
+  /** Alias for addRule */
   async createRule(name: string, conditions: string): Promise<RuleResponse> {
-    this.validateRuleName(name);
-    this.validateRuleConditions(conditions);
     return this.addRule(name, conditions);
   }
 
-  /**
-   * Update an existing rule
-   */
+  /** Alias for setRule */
   async updateRule(name: string, conditions: string): Promise<RuleResponse> {
-    this.validateRuleName(name);
-    this.validateRuleConditions(conditions);
     return this.setRule(name, conditions);
   }
 
-  /**
-   * Delete a rule
-   */
+  /** Alias for removeRule */
   async deleteRule(name: string): Promise<RuleResponse> {
-    this.validateRuleName(name);
     return this.removeRule(name);
   }
 
-  /**
-   * List all rules
-   */
+  /** Alias for getRules */
   async listRules(): Promise<RuleResponse> {
     return this.getRules();
   }
 
-  /**
-   * Validate a rule by testing it
-   */
+  /** Alias for testRule */
   async validateRule(name: string): Promise<RuleResponse> {
-    this.validateRuleName(name);
     return this.testRule(name);
   }
 

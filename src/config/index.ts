@@ -50,21 +50,23 @@ const ENV_VARS = {
  */
 export class ConfigManager {
   private _config: Required<Omit<ClientConfig, "logging">> & { logging?: ClientConfig["logging"] };
+  private readonly _envConfig: Partial<ClientConfig>;
   private _logger: Logger;
 
   constructor(userConfig: Partial<ClientConfig> = {}) {
+    this._envConfig = this.getEnvironmentConfig();
     this._config = this.buildConfig(userConfig);
     this.validateConfig();
     this._logger = createLogger(this._config.logging);
   }
 
   /**
-   * Build configuration from user config, environment variables, and defaults
+   * Build configuration from user config, cached environment variables, and defaults
    */
   private buildConfig(
     userConfig: Partial<ClientConfig>,
   ): Required<Omit<ClientConfig, "logging">> & { logging?: ClientConfig["logging"] } {
-    const envConfig = this.getEnvironmentConfig();
+    const envConfig = this._envConfig;
 
     const config: Required<Omit<ClientConfig, "logging">> & { logging?: ClientConfig["logging"] } =
       {

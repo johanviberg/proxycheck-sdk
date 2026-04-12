@@ -223,18 +223,6 @@ describe("ProxyCheckClient", () => {
     });
   });
 
-  describe("internal access methods", () => {
-    it("should provide access to HTTP client", () => {
-      const result = client.getHttpClient();
-      expect(result).toBe(mockHttpClient);
-    });
-
-    it("should provide access to config manager", () => {
-      const result = client.getConfigManager();
-      expect(result).toBe(mockConfigManager);
-    });
-  });
-
   describe("isConfigured", () => {
     it("should return true when API key is configured", () => {
       mockConfigManager.getConfig.mockReturnValue({
