@@ -189,7 +189,7 @@ export function createErrorFromResponse(error: unknown): ProxyCheckError {
       const limit = Number.parseInt(headers["x-ratelimit-limit"] || "0", 10);
       const remaining = Number.parseInt(headers["x-ratelimit-remaining"] || "0", 10);
       const reset = new Date(Number.parseInt(headers["x-ratelimit-reset"] || "0", 10) * 1000);
-      const retryAfter = Number.parseInt(headers["retry-after"] || "60", 10);
+      const retryAfter = Number.parseInt(headers["retry-after"] || "0", 10);
 
       return new ProxyCheckRateLimitError(
         "Rate limit exceeded",

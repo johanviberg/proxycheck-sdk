@@ -199,7 +199,7 @@ export class CheckService extends BaseService {
       asnData: true,
       riskData: 2,
       vpnDetection: 3,
-      ...stripUndefined(options as Record<string, unknown>) as ProxyCheckOptions,
+      ...(stripUndefined(options as Record<string, unknown>) as ProxyCheckOptions),
     };
 
     const response = await this.checkAddress(address, detailedOptions);
@@ -211,7 +211,14 @@ export class CheckService extends BaseService {
    * ignoring metadata keys. Works regardless of address masking.
    */
   private getFirstAddressResult(response: CheckResponse): AddressCheckResult | undefined {
-    const metadataKeys = new Set(["status", "message", "node", "query time", "block", "block_reason"]);
+    const metadataKeys = new Set([
+      "status",
+      "message",
+      "node",
+      "query time",
+      "block",
+      "block_reason",
+    ]);
     for (const [key, value] of Object.entries(response)) {
       if (!metadataKeys.has(key) && value && typeof value === "object") {
         return value as AddressCheckResult;
@@ -279,10 +286,8 @@ export class CheckService extends BaseService {
       response.block_reason = "na";
     }
 
-    // Country blocking logic
+    // Country blocking logic — skip if no country data, but preserve proxy/VPN block
     if (!result.country) {
-      response.block = "na";
-      response.block_reason = "na";
       return;
     }
 

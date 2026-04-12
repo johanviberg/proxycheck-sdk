@@ -9,6 +9,7 @@ import { ListingService } from "../services/listing";
 import { RulesService } from "../services/rules";
 import { StatsService } from "../services/stats";
 import type { ClientConfig, RateLimitInfo } from "../types";
+import { VERSION } from "../types/constants";
 
 /**
  * Main ProxyCheck SDK client
@@ -143,7 +144,7 @@ export class ProxyCheckClient {
   } {
     const rateLimitInfo = this.getRateLimitInfo();
     const result = {
-      version: "0.9.0",
+      version: VERSION,
       baseUrl: this._config.getBaseUrl(),
       tlsEnabled: this._config.isTlsEnabled(),
       configured: this.isConfigured(),

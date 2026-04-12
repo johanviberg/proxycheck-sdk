@@ -1,4 +1,6 @@
-export const VERSION = "0.9.0";
+// Re-export version from single source of truth
+import { VERSION } from "./types/constants";
+export { VERSION };
 
 // Export main client
 export { ProxyCheckClient } from "./client";

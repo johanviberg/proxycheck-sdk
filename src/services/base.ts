@@ -46,10 +46,7 @@ export abstract class BaseService {
   protected validateConfiguration(): void {
     const apiKey = this.getApiKey();
     if (!apiKey || apiKey.length === 0) {
-      throw new ProxyCheckValidationError(
-        "API key is required but not configured",
-        "apiKey",
-      );
+      throw new ProxyCheckValidationError("API key is required but not configured", "apiKey");
     }
   }
 
@@ -113,42 +110,6 @@ export abstract class BaseService {
       }
     }
     return response;
-  }
-
-  /**
-   * Sleep utility for rate limiting
-   */
-  protected sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
-  /**
-   * Retry a request with exponential backoff
-   */
-  protected async retryRequest<T>(
-    requestFn: () => Promise<T>,
-    maxRetries = 3,
-    baseDelay = 1000,
-  ): Promise<T> {
-    let lastError: unknown;
-
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      try {
-        return await requestFn();
-      } catch (error) {
-        lastError = error;
-
-        if (attempt === maxRetries) {
-          break;
-        }
-
-        // Calculate delay with exponential backoff and jitter
-        const delay = baseDelay * 2 ** attempt + Math.random() * 1000;
-        await this.sleep(delay);
-      }
-    }
-
-    throw lastError;
   }
 
   /**

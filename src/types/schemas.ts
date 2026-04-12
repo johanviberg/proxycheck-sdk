@@ -86,7 +86,12 @@ export const ProxyCheckOptionsSchema = z.object({
 // Client configuration schema
 export const ClientConfigSchema = z.object({
   apiKey: z.string().min(1, "API key is required"),
-  baseUrl: z.string().optional(),
+  baseUrl: z
+    .string()
+    .refine((v) => !(v.startsWith("http://") || v.startsWith("https://")), {
+      message: "baseUrl must not include a protocol prefix (http:// or https://)",
+    })
+    .optional(),
   timeout: z.number().positive().optional(),
   retries: z.number().nonnegative().optional(),
   retryDelay: z.number().nonnegative().optional(),
