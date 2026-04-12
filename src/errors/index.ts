@@ -6,12 +6,24 @@ import type { ErrorResponse } from "../types";
 import { ERROR_CODES } from "../types/constants";
 
 /**
+ * Parse a header value as an integer, returning undefined if absent or malformed
+ */
+function safeParseInt(value: string | undefined): number | undefined {
+  if (!value) {
+    return undefined;
+  }
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+/**
  * Base error class for all ProxyCheck errors
  */
 export class ProxyCheckError extends Error {
   public readonly code: string;
   public readonly statusCode?: number;
   public readonly timestamp: Date;
+  public requestId?: string;
 
   constructor(message: string, code: string, statusCode?: number) {
     super(message);
@@ -37,6 +49,7 @@ export class ProxyCheckError extends Error {
       message: this.message,
       code: this.code,
       statusCode: this.statusCode,
+      requestId: this.requestId,
       timestamp: this.timestamp.toISOString(),
       stack: this.stack,
     };
@@ -48,7 +61,6 @@ export class ProxyCheckError extends Error {
  */
 export class ProxyCheckAPIError extends ProxyCheckError {
   public readonly response?: ErrorResponse;
-  public readonly requestId?: string;
 
   constructor(message: string, statusCode: number, response?: ErrorResponse, requestId?: string) {
     super(message, ERROR_CODES.API_ERROR, statusCode);
@@ -100,15 +112,23 @@ export class ProxyCheckValidationError extends ProxyCheckError {
  */
 export class ProxyCheckRateLimitError extends ProxyCheckError {
   public readonly limit: number;
-  public readonly remaining: number;
+  public readonly remaining?: number;
   public readonly reset: Date;
   public readonly retryAfter: number;
 
-  constructor(message: string, limit: number, remaining: number, reset: Date, retryAfter: number) {
+  constructor(
+    message: string,
+    limit: number,
+    remaining: number | undefined,
+    reset: Date,
+    retryAfter: number,
+  ) {
     super(message, ERROR_CODES.RATE_LIMIT, 429);
     this.name = "ProxyCheckRateLimitError";
     this.limit = limit;
-    this.remaining = remaining;
+    if (remaining !== undefined) {
+      this.remaining = remaining;
+    }
     this.reset = reset;
     this.retryAfter = retryAfter;
   }
@@ -125,6 +145,7 @@ export class ProxyCheckNetworkError extends ProxyCheckError {
     this.name = "ProxyCheckNetworkError";
     if (originalError !== undefined) {
       this.originalError = originalError;
+      Object.defineProperty(this, "cause", { value: originalError, writable: false });
     }
   }
 }
@@ -144,11 +165,16 @@ export class ProxyCheckAuthenticationError extends ProxyCheckError {
  */
 export class ProxyCheckTimeoutError extends ProxyCheckError {
   public readonly timeout: number;
+  public readonly originalError?: Error;
 
-  constructor(message: string, timeout: number) {
+  constructor(message: string, timeout: number, originalError?: Error) {
     super(message, ERROR_CODES.TIMEOUT_ERROR);
     this.name = "ProxyCheckTimeoutError";
     this.timeout = timeout;
+    if (originalError !== undefined) {
+      this.originalError = originalError;
+      Object.defineProperty(this, "cause", { value: originalError, writable: false });
+    }
   }
 }
 
@@ -186,10 +212,11 @@ export function createErrorFromResponse(error: unknown): ProxyCheckError {
 
     // Check for rate limiting
     if (status === 429) {
-      const limit = Number.parseInt(headers["x-ratelimit-limit"] || "0", 10);
-      const remaining = Number.parseInt(headers["x-ratelimit-remaining"] || "0", 10);
-      const reset = new Date(Number.parseInt(headers["x-ratelimit-reset"] || "0", 10) * 1000);
-      const retryAfter = Number.parseInt(headers["retry-after"] || "0", 10);
+      const limit = safeParseInt(headers["x-ratelimit-limit"]) ?? 0;
+      const remaining = safeParseInt(headers["x-ratelimit-remaining"]);
+      const resetSeconds = safeParseInt(headers["x-ratelimit-reset"]);
+      const reset = resetSeconds !== undefined ? new Date(resetSeconds * 1000) : new Date();
+      const retryAfter = safeParseInt(headers["retry-after"]) ?? 0;
 
       return new ProxyCheckRateLimitError(
         "Rate limit exceeded",
@@ -214,10 +241,12 @@ export function createErrorFromResponse(error: unknown): ProxyCheckError {
     return ProxyCheckAPIError.fromResponse(status, errorResponse, headers["x-request-id"]);
   }
 
+  const originalError = error instanceof Error ? error : undefined;
+
   // Handle timeout errors
   if (error && typeof error === "object" && "code" in error && error.code === "ECONNABORTED") {
     const timeout = "timeout" in error && typeof error.timeout === "number" ? error.timeout : 0;
-    return new ProxyCheckTimeoutError("Request timed out", timeout);
+    return new ProxyCheckTimeoutError("Request timed out", timeout, originalError);
   }
 
   if (
@@ -227,19 +256,18 @@ export function createErrorFromResponse(error: unknown): ProxyCheckError {
     typeof error.message === "string" &&
     error.message.includes("timeout")
   ) {
-    return new ProxyCheckTimeoutError("Request timed out", 0);
+    return new ProxyCheckTimeoutError("Request timed out", 0, originalError);
   }
 
   // Handle network errors
   if (error && typeof error === "object" && "request" in error) {
-    const originalError = error instanceof Error ? error : undefined;
     return new ProxyCheckNetworkError("Network error occurred", originalError);
   }
 
-  // Default to base error
+  // Default to unknown error
   const message =
     error && typeof error === "object" && "message" in error && typeof error.message === "string"
       ? error.message
       : "An unknown error occurred";
-  return new ProxyCheckError(message, ERROR_CODES.API_ERROR);
+  return new ProxyCheckError(message, ERROR_CODES.UNKNOWN_ERROR);
 }

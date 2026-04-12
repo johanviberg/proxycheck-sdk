@@ -3,7 +3,7 @@
  */
 
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from "axios";
-import { createErrorFromResponse, isRateLimitError } from "../errors";
+import { type ProxyCheckError, createErrorFromResponse, isRateLimitError } from "../errors";
 import type { Logger } from "../logging";
 import type { ClientConfig, RateLimitInfo, RequestConfig } from "../types";
 import { DEFAULTS } from "../types/constants";
@@ -82,12 +82,22 @@ export class HttpClient {
     const headers = response.headers;
 
     if (headers["x-ratelimit-limit"]) {
-      this._rateLimitInfo = {
-        limit: Number.parseInt(headers["x-ratelimit-limit"], 10),
-        remaining: Number.parseInt(headers["x-ratelimit-remaining"] || "0", 10),
-        reset: new Date(Number.parseInt(headers["x-ratelimit-reset"] || "0", 10) * 1000),
-        retryAfter: Number.parseInt(headers["retry-after"] || "0", 10),
+      const limit = Number.parseInt(headers["x-ratelimit-limit"], 10);
+      const remaining = Number.parseInt(headers["x-ratelimit-remaining"], 10);
+      const reset = Number.parseInt(headers["x-ratelimit-reset"], 10);
+      const retryAfter = Number.parseInt(headers["retry-after"], 10);
+
+      const info: RateLimitInfo = {
+        limit: Number.isFinite(limit) ? limit : 0,
+        reset: Number.isFinite(reset) ? new Date(reset * 1000) : new Date(),
       };
+      if (Number.isFinite(remaining)) {
+        info.remaining = remaining;
+      }
+      if (Number.isFinite(retryAfter)) {
+        info.retryAfter = retryAfter;
+      }
+      this._rateLimitInfo = info;
     }
   }
 
@@ -229,6 +239,14 @@ export class HttpClient {
         attempts: this._config.retries + 1,
       },
     );
+
+    // Attach SDK request ID to error for log correlation
+    if (lastError && typeof lastError === "object" && "requestId" in lastError) {
+      const err = lastError as ProxyCheckError;
+      if (!err.requestId) {
+        err.requestId = requestId;
+      }
+    }
 
     throw lastError;
   }

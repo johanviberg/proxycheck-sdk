@@ -195,7 +195,7 @@ export interface RequestConfig {
  */
 export interface RateLimitInfo {
   limit: number;
-  remaining: number;
+  remaining?: number;
   reset: Date;
   retryAfter?: number;
 }

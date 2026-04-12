@@ -101,15 +101,36 @@ export class ConfigManager {
     }
     const timeout = env[ENV_VARS.TIMEOUT];
     if (timeout) {
-      config.timeout = Number.parseInt(timeout, 10);
+      const parsed = Number.parseInt(timeout, 10);
+      if (!Number.isFinite(parsed)) {
+        throw new ProxyCheckValidationError(
+          `${ENV_VARS.TIMEOUT} must be a valid integer, got: "${timeout}"`,
+          "timeout",
+        );
+      }
+      config.timeout = parsed;
     }
     const retries = env[ENV_VARS.RETRIES];
     if (retries) {
-      config.retries = Number.parseInt(retries, 10);
+      const parsed = Number.parseInt(retries, 10);
+      if (!Number.isFinite(parsed)) {
+        throw new ProxyCheckValidationError(
+          `${ENV_VARS.RETRIES} must be a valid integer, got: "${retries}"`,
+          "retries",
+        );
+      }
+      config.retries = parsed;
     }
     const retryDelay = env[ENV_VARS.RETRY_DELAY];
     if (retryDelay) {
-      config.retryDelay = Number.parseInt(retryDelay, 10);
+      const parsed = Number.parseInt(retryDelay, 10);
+      if (!Number.isFinite(parsed)) {
+        throw new ProxyCheckValidationError(
+          `${ENV_VARS.RETRY_DELAY} must be a valid integer, got: "${retryDelay}"`,
+          "retryDelay",
+        );
+      }
+      config.retryDelay = parsed;
     }
     if (env[ENV_VARS.TLS_SECURITY]) {
       config.tlsSecurity = env[ENV_VARS.TLS_SECURITY] === "true";
