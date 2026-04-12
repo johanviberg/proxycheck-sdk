@@ -2,6 +2,7 @@
  * Rules Service for custom rule management
  */
 
+import { z } from "zod";
 import { ProxyCheckValidationError } from "../errors";
 import type { RuleOptions, RuleResponse } from "../types";
 import { API_ENDPOINTS } from "../types/constants";
@@ -135,26 +136,22 @@ export class RulesService extends BaseService {
     };
 
     // Build POST data
-    let postData = "";
-    const postFields: Array<string> = [];
+    const postData: Record<string, unknown> = {};
 
     if (validatedOptions.ruleSelection) {
-      postFields.push(`name=${validatedOptions.ruleSelection}`);
+      postData["name"] = validatedOptions.ruleSelection;
     }
 
     if (validatedOptions.ruleEntries) {
-      postFields.push(`data=${validatedOptions.ruleEntries}`);
-    }
-
-    if (postFields.length > 0) {
-      postData = postFields.join("&");
+      postData["data"] = validatedOptions.ruleEntries;
     }
 
     // Make request
     const fullUrl = this.http.buildUrl(url, queryParams);
-    const response = await this.http.post<RuleResponse>(fullUrl, postData, {
-      "Content-Type": "application/x-www-form-urlencoded",
-    });
+    const response = await this.http.postForm<RuleResponse>(
+      fullUrl,
+      Object.keys(postData).length > 0 ? postData : undefined,
+    );
 
     return this.processResponse(response);
   }
@@ -227,8 +224,20 @@ export class RulesService extends BaseService {
     try {
       const parsed = RuleOptionsSchema.parse(options) as any;
       return stripUndefined(parsed) as RuleOptions;
-    } catch (_error) {
-      throw new ProxyCheckValidationError("Invalid rule options provided", "options", options);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const validationErrors = error.errors.map((err) => ({
+          path: err.path.join("."),
+          message: err.message,
+        }));
+        throw new ProxyCheckValidationError(
+          "Invalid rule options provided",
+          undefined,
+          options,
+          validationErrors,
+        );
+      }
+      throw error;
     }
   }
 }

@@ -2,6 +2,7 @@
  * Check Service for IP/Email address checking
  */
 
+import { z } from "zod";
 import {
   buildPostData,
   buildQueryParams,
@@ -13,7 +14,7 @@ import { ProxyCheckValidationError } from "../errors";
 import type { AddressCheckResult, CheckResponse, ProxyCheckOptions } from "../types";
 import { API_ENDPOINTS } from "../types/constants";
 import { ProxyCheckOptionsSchema } from "../types/schemas";
-import { stripUndefined } from "../utils/object";
+import { redactUrl, stripUndefined } from "../utils/object";
 import { BaseService } from "./base";
 
 /**
@@ -87,7 +88,7 @@ export class CheckService extends BaseService {
           operation: "checkAddresses",
           service: this.getServiceName(),
           method: "POST",
-          url,
+          url: redactUrl(url),
         });
         response = await this.http.postForm<CheckResponse>(
           url,
@@ -111,7 +112,7 @@ export class CheckService extends BaseService {
           operation: "checkAddresses",
           service: this.getServiceName(),
           method: "GET",
-          url,
+          url: redactUrl(url),
         });
         response = await this.http.get<CheckResponse>(url);
       }
@@ -153,7 +154,7 @@ export class CheckService extends BaseService {
    */
   async isProxy(address: string, options: ProxyCheckOptions = {}): Promise<boolean> {
     const response = await this.checkAddress(address, options);
-    const result = response[address] as AddressCheckResult;
+    const result = this.getFirstAddressResult(response);
     return result?.proxy === "yes";
   }
 
@@ -162,7 +163,7 @@ export class CheckService extends BaseService {
    */
   async isVPN(address: string, options: ProxyCheckOptions = {}): Promise<boolean> {
     const response = await this.checkAddress(address, { ...options, vpnDetection: 1 });
-    const result = response[address] as AddressCheckResult;
+    const result = this.getFirstAddressResult(response);
     return result?.type === "VPN";
   }
 
@@ -171,7 +172,7 @@ export class CheckService extends BaseService {
    */
   async isDisposableEmail(email: string, options: ProxyCheckOptions = {}): Promise<boolean> {
     const response = await this.checkAddress(email, options);
-    const result = response[email] as AddressCheckResult;
+    const result = this.getFirstAddressResult(response);
     return result?.disposable === "yes";
   }
 
@@ -183,7 +184,7 @@ export class CheckService extends BaseService {
     options: ProxyCheckOptions = {},
   ): Promise<number | undefined> {
     const response = await this.checkAddress(address, { ...options, riskData: 2 });
-    const result = response[address] as AddressCheckResult;
+    const result = this.getFirstAddressResult(response);
     return result?.risk;
   }
 
@@ -198,17 +199,25 @@ export class CheckService extends BaseService {
       asnData: true,
       riskData: 2,
       vpnDetection: 3,
+      ...stripUndefined(options as Record<string, unknown>) as ProxyCheckOptions,
     };
 
-    // Only add defined options to avoid undefined properties
-    for (const [key, value] of Object.entries(options)) {
-      if (value !== undefined) {
-        (detailedOptions as any)[key] = value;
+    const response = await this.checkAddress(address, detailedOptions);
+    return this.getFirstAddressResult(response);
+  }
+
+  /**
+   * Extract the first address result from a check response,
+   * ignoring metadata keys. Works regardless of address masking.
+   */
+  private getFirstAddressResult(response: CheckResponse): AddressCheckResult | undefined {
+    const metadataKeys = new Set(["status", "message", "node", "query time", "block", "block_reason"]);
+    for (const [key, value] of Object.entries(response)) {
+      if (!metadataKeys.has(key) && value && typeof value === "object") {
+        return value as AddressCheckResult;
       }
     }
-
-    const response = await this.checkAddress(address, detailedOptions);
-    return response[address] as AddressCheckResult;
+    return undefined;
   }
 
   /**
@@ -218,8 +227,20 @@ export class CheckService extends BaseService {
     try {
       const parsed = ProxyCheckOptionsSchema.parse(options) as any;
       return stripUndefined(parsed) as ProxyCheckOptions;
-    } catch (_error) {
-      throw new ProxyCheckValidationError("Invalid options provided", "options", options);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const validationErrors = error.errors.map((err) => ({
+          path: err.path.join("."),
+          message: err.message,
+        }));
+        throw new ProxyCheckValidationError(
+          "Invalid options provided",
+          undefined,
+          options,
+          validationErrors,
+        );
+      }
+      throw error;
     }
   }
 

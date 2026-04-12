@@ -2,6 +2,7 @@
  * Stats Service for usage statistics and exports
  */
 
+import { z } from "zod";
 import { ProxyCheckValidationError } from "../errors";
 import type { StatsOptions, StatsResponse } from "../types";
 import { API_ENDPOINTS } from "../types/constants";
@@ -207,8 +208,20 @@ export class StatsService extends BaseService {
     try {
       const parsed = StatsOptionsSchema.parse(options) as any;
       return stripUndefined(parsed) as StatsOptions;
-    } catch (_error) {
-      throw new ProxyCheckValidationError("Invalid stats options provided", "options", options);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const validationErrors = error.errors.map((err) => ({
+          path: err.path.join("."),
+          message: err.message,
+        }));
+        throw new ProxyCheckValidationError(
+          "Invalid stats options provided",
+          undefined,
+          options,
+          validationErrors,
+        );
+      }
+      throw error;
     }
   }
 }

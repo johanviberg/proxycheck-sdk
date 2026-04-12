@@ -7,6 +7,7 @@ import { createErrorFromResponse, isRateLimitError } from "../errors";
 import type { Logger } from "../logging";
 import type { ClientConfig, RateLimitInfo, RequestConfig } from "../types";
 import { DEFAULTS } from "../types/constants";
+import { redactUrl } from "../utils/object";
 
 /**
  * HTTP Client class with built-in retry logic and rate limiting
@@ -20,9 +21,9 @@ export class HttpClient {
   constructor(config: ClientConfig, logger?: Logger) {
     this._config = {
       baseUrl: config.baseUrl || DEFAULTS.BASE_URL,
-      timeout: config.timeout || DEFAULTS.TIMEOUT,
-      retries: config.retries || DEFAULTS.RETRIES,
-      retryDelay: config.retryDelay || DEFAULTS.RETRY_DELAY,
+      timeout: config.timeout ?? DEFAULTS.TIMEOUT,
+      retries: config.retries ?? DEFAULTS.RETRIES,
+      retryDelay: config.retryDelay ?? DEFAULTS.RETRY_DELAY,
       tlsSecurity: config.tlsSecurity ?? DEFAULTS.TLS_SECURITY,
       userAgent: config.userAgent || DEFAULTS.USER_AGENT,
       apiKey: config.apiKey,
@@ -98,10 +99,11 @@ export class HttpClient {
   }
 
   /**
-   * Calculate delay for exponential backoff
+   * Calculate delay for exponential backoff, capped at 60 seconds
    */
   private calculateDelay(attempt: number, baseDelay: number): number {
-    return baseDelay * 2 ** attempt + Math.random() * 1000;
+    const MAX_DELAY = 60_000;
+    return Math.min(baseDelay * 2 ** attempt, MAX_DELAY) + Math.random() * 1000;
   }
 
   /**
@@ -157,7 +159,7 @@ export class HttpClient {
     this._logger?.debug("HTTP request starting", {
       requestId,
       method,
-      url,
+      url: redactUrl(url),
       params: params ? Object.keys(params) : undefined,
       hasData: !!data,
     });
@@ -172,7 +174,7 @@ export class HttpClient {
         this._logger?.info("HTTP request completed", {
           requestId,
           method,
-          url,
+          url: redactUrl(url),
           statusCode: response.status,
           duration,
           ...(attempt > 0 && { retryAttempt: attempt }),
@@ -195,15 +197,15 @@ export class HttpClient {
         // Calculate delay for next attempt
         let delay = this.calculateDelay(attempt, this._config.retryDelay);
 
-        // Use retry-after header for rate limit errors
+        // Use retry-after header for rate limit errors, capped at 60 seconds
         if (isRateLimitError(error) && error.retryAfter) {
-          delay = error.retryAfter * 1000;
+          delay = Math.min(error.retryAfter * 1000, 60_000);
         }
 
         this._logger?.warn("HTTP request failed, retrying", {
           requestId,
           method,
-          url,
+          url: redactUrl(url),
           retryAttempt: attempt + 1,
           maxRetries: this._config.retries,
           delayMs: delay,
@@ -222,7 +224,7 @@ export class HttpClient {
       {
         requestId,
         method,
-        url,
+        url: redactUrl(url),
         duration,
         attempts: this._config.retries + 1,
       },

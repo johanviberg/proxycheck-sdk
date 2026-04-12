@@ -3,9 +3,14 @@
  */
 
 import type { ConfigManager } from "../config";
-import { ProxyCheckValidationError } from "../errors";
+import {
+  ProxyCheckAPIError,
+  ProxyCheckAuthenticationError,
+  ProxyCheckValidationError,
+} from "../errors";
 import type { HttpClient } from "../http";
 import type { Logger } from "../logging";
+import type { ErrorResponse } from "../types";
 
 /**
  * Abstract base class for all API services
@@ -44,7 +49,6 @@ export abstract class BaseService {
       throw new ProxyCheckValidationError(
         "API key is required but not configured",
         "apiKey",
-        apiKey,
       );
     }
   }
@@ -90,11 +94,24 @@ export abstract class BaseService {
   }
 
   /**
-   * Handle common response processing
+   * Handle common response processing — checks for API-level errors returned in 200 responses
    */
   protected processResponse<T>(response: T): T {
-    // Add any common response processing logic here
-    // For now, just return the response as-is
+    if (response && typeof response === "object" && "status" in response) {
+      const resp = response as Record<string, unknown>;
+      const message = typeof resp["message"] === "string" ? resp["message"] : undefined;
+
+      if (resp["status"] === "denied") {
+        throw new ProxyCheckAuthenticationError(message ?? "Request denied by API");
+      }
+
+      if (resp["status"] === "error") {
+        throw ProxyCheckAPIError.fromResponse(200, {
+          status: "error",
+          message: message ?? "API returned an error",
+        } as ErrorResponse);
+      }
+    }
     return response;
   }
 

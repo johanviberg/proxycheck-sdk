@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { ConfigManager } from "../config";
 import { HttpClient } from "../http";
 import { CheckService } from "../services/check";
-import type { ClientConfig, RateLimitInfo } from "../types";
+import type { RateLimitInfo } from "../types";
 import { ProxyCheckClient } from "./index";
 
 // Mock dependencies
@@ -177,18 +177,6 @@ describe("ProxyCheckClient", () => {
         logging: expect.any(Object),
       });
       expect(mockConfigManager.getConfig).toHaveBeenCalled();
-    });
-  });
-
-  describe("updateConfig", () => {
-    it("should update configuration", () => {
-      const updates: Partial<ClientConfig> = {
-        timeout: 10000,
-        retries: 5,
-      };
-
-      client.updateConfig(updates);
-      expect(mockConfigManager.updateConfig).toHaveBeenCalledWith(updates);
     });
   });
 

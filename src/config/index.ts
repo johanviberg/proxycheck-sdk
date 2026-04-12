@@ -8,7 +8,7 @@ import { createLogger, type Logger } from "../logging";
 import type { ClientConfig, ProxyCheckOptions } from "../types";
 import { DEFAULTS } from "../types/constants";
 import { ClientConfigSchema, ProxyCheckOptionsSchema } from "../types/schemas";
-import { stripUndefined } from "../utils/object";
+import { redactConfig, stripUndefined } from "../utils/object";
 
 /**
  * Query parameters interface
@@ -70,9 +70,9 @@ export class ConfigManager {
       {
         apiKey: userConfig.apiKey || envConfig.apiKey || "",
         baseUrl: userConfig.baseUrl || envConfig.baseUrl || DEFAULTS.BASE_URL,
-        timeout: userConfig.timeout || envConfig.timeout || DEFAULTS.TIMEOUT,
-        retries: userConfig.retries || envConfig.retries || DEFAULTS.RETRIES,
-        retryDelay: userConfig.retryDelay || envConfig.retryDelay || DEFAULTS.RETRY_DELAY,
+        timeout: userConfig.timeout ?? envConfig.timeout ?? DEFAULTS.TIMEOUT,
+        retries: userConfig.retries ?? envConfig.retries ?? DEFAULTS.RETRIES,
+        retryDelay: userConfig.retryDelay ?? envConfig.retryDelay ?? DEFAULTS.RETRY_DELAY,
         tlsSecurity: userConfig.tlsSecurity ?? envConfig.tlsSecurity ?? DEFAULTS.TLS_SECURITY,
         userAgent: userConfig.userAgent || DEFAULTS.USER_AGENT,
       };
@@ -134,7 +134,7 @@ export class ConfigManager {
         throw new ProxyCheckValidationError(
           "Invalid configuration",
           undefined,
-          this._config,
+          redactConfig(this._config as Record<string, unknown>),
           validationErrors,
         );
       }

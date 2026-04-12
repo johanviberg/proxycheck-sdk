@@ -85,15 +85,6 @@ export class ProxyCheckClient {
   }
 
   /**
-   * Update the client configuration
-   */
-  updateConfig(updates: Partial<ClientConfig>): void {
-    this._config.updateConfig(updates);
-    // Note: HttpClient would need to be recreated for some config changes
-    // For now, we'll keep it simple and assume most changes don't affect HTTP client
-  }
-
-  /**
    * Get the API key
    */
   getApiKey(): string {
