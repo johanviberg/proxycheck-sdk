@@ -40,6 +40,7 @@ describe("HttpClient", () => {
   describe("constructor", () => {
     it("should create axios instance with correct config", () => {
       expect(mockedAxios.create).toHaveBeenCalledWith({
+        baseURL: "https://proxycheck.io",
         timeout: 5000,
         headers: {
           "User-Agent": "proxycheck-sdk/0.9.0",
@@ -53,14 +54,16 @@ describe("HttpClient", () => {
       const minimalConfig = { apiKey: "test" };
       new HttpClient(minimalConfig);
 
-      expect(mockedAxios.create).toHaveBeenCalledWith({
-        timeout: 30000, // Default timeout
-        headers: expect.any(Object),
-      });
+      expect(mockedAxios.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          baseURL: "https://proxycheck.io",
+          timeout: 30000,
+          headers: expect.any(Object),
+        }),
+      );
     });
 
-    it("should setup interceptors", () => {
-      expect(mockAxiosInstance.interceptors.request.use).toHaveBeenCalled();
+    it("should setup response interceptor", () => {
       expect(mockAxiosInstance.interceptors.response.use).toHaveBeenCalled();
     });
   });

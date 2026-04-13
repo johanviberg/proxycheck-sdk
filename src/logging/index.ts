@@ -150,7 +150,15 @@ export class ConsoleLogger implements Logger {
 
     if (entry.context && Object.keys(entry.context).length > 0) {
       const contextStr = Object.entries(entry.context)
-        .map(([key, value]) => `${key}=${value}`)
+        .map(([key, value]) => {
+          if (value === null || value === undefined) {
+            return `${key}=${String(value)}`;
+          }
+          if (typeof value === "object") {
+            return `${key}=${JSON.stringify(value)}`;
+          }
+          return `${key}=${String(value)}`;
+        })
         .join(" ");
       output += ` (${contextStr})`;
     }

@@ -223,7 +223,7 @@ describe("ProxyCheckClient", () => {
     });
   });
 
-  describe("isConfigured", () => {
+  describe("hasApiKey", () => {
     it("should return true when API key is configured", () => {
       mockConfigManager.getConfig.mockReturnValue({
         apiKey: "valid-key",
@@ -235,7 +235,7 @@ describe("ProxyCheckClient", () => {
         userAgent: "proxycheck-sdk/0.1.0",
       });
 
-      const result = client.isConfigured();
+      const result = client.hasApiKey();
       expect(result).toBe(true);
     });
 
@@ -250,7 +250,7 @@ describe("ProxyCheckClient", () => {
         userAgent: "proxycheck-sdk/0.1.0",
       });
 
-      const result = client.isConfigured();
+      const result = client.hasApiKey();
       expect(result).toBe(false);
     });
 
@@ -259,7 +259,7 @@ describe("ProxyCheckClient", () => {
         throw new Error("Configuration error");
       });
 
-      const result = client.isConfigured();
+      const result = client.hasApiKey();
       expect(result).toBe(false);
     });
   });

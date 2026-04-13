@@ -39,7 +39,6 @@ describe("Error Classes", () => {
         statusCode: 500,
       });
       expect(json.timestamp).toBeDefined();
-      expect(json.stack).toBeDefined();
     });
   });
 

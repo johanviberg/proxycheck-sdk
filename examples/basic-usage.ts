@@ -64,7 +64,7 @@ async function clientInfo() {
   console.log("Client info:", JSON.stringify(info, null, 2));
 
   console.log(
-    `\nConfiguration status: ${client.isConfigured() ? "✅ Configured" : "❌ Not configured"}`,
+    `\nConfiguration status: ${client.hasApiKey() ? "✅ Configured" : "❌ Not configured"}`,
   );
 }
 

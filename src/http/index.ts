@@ -33,7 +33,9 @@ export class HttpClient {
       this._logger = logger;
     }
 
+    const protocol = this._config.tlsSecurity ? "https" : "http";
     this._axios = axios.create({
+      baseURL: `${protocol}://${this._config.baseUrl}`,
       timeout: this._config.timeout,
       headers: {
         "User-Agent": this._config.userAgent,
@@ -49,18 +51,6 @@ export class HttpClient {
    * Setup request and response interceptors
    */
   private setupInterceptors(): void {
-    // Request interceptor
-    this._axios.interceptors.request.use(
-      (config) => {
-        // Set base URL with protocol
-        const protocol = this._config.tlsSecurity ? "https" : "http";
-        config.baseURL = `${protocol}://${this._config.baseUrl}`;
-
-        return config;
-      },
-      (error) => Promise.reject(error),
-    );
-
     // Response interceptor
     this._axios.interceptors.response.use(
       (response) => {

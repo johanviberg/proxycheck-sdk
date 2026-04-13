@@ -143,14 +143,14 @@ async function advancedConfigurationExamples() {
       const _info = client.getClientInfo();
 
       console.log("Configuration Status:");
-      console.log(`  - Configured: ${client.isConfigured() ? "✅" : "❌"}`);
+      console.log(`  - Configured: ${client.hasApiKey() ? "✅" : "❌"}`);
       console.log(`  - API Key Set: ${config.apiKey ? "✅" : "❌"}`);
       console.log(`  - TLS Security: ${config.tlsSecurity ? "✅" : "❌"}`);
       console.log(`  - Timeout: ${config.timeout || "default"}ms`);
       console.log(`  - Retries: ${config.retries || "default"}`);
       console.log(`  - User Agent: ${config.userAgent || "default"}`);
 
-      return client.isConfigured();
+      return client.hasApiKey();
     };
 
     const testConfigs = [

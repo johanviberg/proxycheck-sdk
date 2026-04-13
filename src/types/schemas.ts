@@ -67,21 +67,23 @@ export const AddressCheckResultSchema = z.object({
   last_seen: z.string().optional(),
 });
 
-// Configuration options schema
-export const ProxyCheckOptionsSchema = z.object({
-  apiKey: z.string().optional(),
-  asnData: z.boolean().optional(),
-  allowedCountries: z.array(z.string()).optional(),
-  blockedCountries: z.array(z.string()).optional(),
-  tlsSecurity: z.boolean().optional(),
-  infEngine: z.boolean().optional(),
-  riskData: z.union([z.literal(0), z.literal(1), z.literal(2)]).optional(),
-  vpnDetection: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]).optional(),
-  dayRestrictor: z.number().positive().optional(),
-  queryTagging: z.boolean().optional(),
-  customTag: z.string().optional(),
-  maskAddress: z.boolean().optional(),
-});
+// Configuration options schema — strict mode rejects unknown keys (catches typos)
+export const ProxyCheckOptionsSchema = z
+  .object({
+    apiKey: z.string().optional(),
+    asnData: z.boolean().optional(),
+    allowedCountries: z.array(z.string()).optional(),
+    blockedCountries: z.array(z.string()).optional(),
+    tlsSecurity: z.boolean().optional(),
+    infEngine: z.boolean().optional(),
+    riskData: z.union([z.literal(0), z.literal(1), z.literal(2)]).optional(),
+    vpnDetection: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]).optional(),
+    dayRestrictor: z.number().positive().optional(),
+    queryTagging: z.boolean().optional(),
+    customTag: z.string().optional(),
+    maskAddress: z.boolean().optional(),
+  })
+  .strict();
 
 // Client configuration schema
 export const ClientConfigSchema = z.object({

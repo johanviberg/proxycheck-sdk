@@ -96,7 +96,8 @@ export class StatsService extends BaseService {
   }
 
   /**
-   * Get all available statistics
+   * Get all available statistics.
+   * Note: fires 3 concurrent API requests — check rate limit headroom before calling.
    */
   async getAllStats(): Promise<{
     detections: StatsResponse;

@@ -109,7 +109,7 @@ export class ProxyCheckClient {
   /**
    * Check if the client is properly configured
    */
-  isConfigured(): boolean {
+  hasApiKey(): boolean {
     try {
       const config = this._config.getConfig();
       return !!config.apiKey && config.apiKey.length > 0;
@@ -133,7 +133,7 @@ export class ProxyCheckClient {
       version: VERSION,
       baseUrl: this._config.getBaseUrl(),
       tlsEnabled: this._config.isTlsEnabled(),
-      configured: this.isConfigured(),
+      configured: this.hasApiKey(),
     };
 
     if (rateLimitInfo !== undefined) {

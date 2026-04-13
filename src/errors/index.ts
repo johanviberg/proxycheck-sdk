@@ -51,7 +51,6 @@ export class ProxyCheckError extends Error {
       statusCode: this.statusCode,
       requestId: this.requestId,
       timestamp: this.timestamp.toISOString(),
-      stack: this.stack,
     };
   }
 }
