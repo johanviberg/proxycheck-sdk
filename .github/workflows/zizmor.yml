@@ -1,0 +1,53 @@
+name: zizmor
+
+# Static analysis of GitHub Actions workflows for security issues.
+# https://github.com/zizmorcore/zizmor — https://docs.zizmor.sh
+#
+# Runs in two complementary modes:
+#   1. Uploads all findings to GitHub code scanning (Security tab + PR
+#      annotations). Free on public repos; non-fatal so a missing code-scanning
+#      setup never breaks CI.
+#   2. Hard-fails the job on medium-or-higher findings, so it works as a
+#      required status check without relying on branch protection.
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  zizmor:
+    name: Audit workflows (zizmor)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # checkout
+      security-events: write # upload SARIF to code scanning
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      # Mode 1 — upload SARIF to the Security tab (all severities). Non-fatal:
+      # if code scanning is unavailable, the gate step below still enforces.
+      - name: zizmor (code scanning)
+        uses: zizmorcore/zizmor-action@5f14fd08f7cf1cb1609c1e344975f152c7ee938d # v0.5.6
+        continue-on-error: true
+        with:
+          advanced-security: true
+          persona: regular
+
+      # Mode 2 — gate: fail the job on medium-or-higher findings.
+      - name: zizmor (gate)
+        uses: zizmorcore/zizmor-action@5f14fd08f7cf1cb1609c1e344975f152c7ee938d # v0.5.6
+        with:
+          advanced-security: false
+          min-severity: medium
+          persona: regular

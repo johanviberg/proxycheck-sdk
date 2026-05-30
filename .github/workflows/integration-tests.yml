@@ -4,7 +4,7 @@ on:
   # Run nightly at 2 AM UTC
   schedule:
     - cron: '0 2 * * *'
-  
+
   # Allow manual trigger
   workflow_dispatch:
     inputs:
@@ -17,29 +17,38 @@ on:
           - smoke
           - full
           - verbose
-  
+
   # Trigger on PR comment
   issue_comment:
     types: [created]
+
+# No default permissions — each job declares exactly what it needs.
+permissions: {}
 
 jobs:
   # Check if we should run based on comment
   check-comment:
     if: github.event_name == 'issue_comment' && contains(github.event.comment.body, '/test-integration')
     runs-on: ubuntu-latest
+    # Needs write access to react to the comment and post PR feedback.
+    permissions:
+      issues: write
+      pull-requests: write
     outputs:
       should_run: ${{ steps.check.outputs.should_run }}
       test_level: ${{ steps.check.outputs.test_level }}
     steps:
       - name: Check comment
         id: check
+        # Use env: to avoid template injection — never interpolate event data into run scripts.
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
         run: |
-          COMMENT="${{ github.event.comment.body }}"
-          if [[ "$COMMENT" == *"/test-integration"* ]]; then
+          if [[ "$COMMENT_BODY" == *"/test-integration"* ]]; then
             echo "should_run=true" >> $GITHUB_OUTPUT
-            if [[ "$COMMENT" == *"full"* ]]; then
+            if [[ "$COMMENT_BODY" == *"full"* ]]; then
               echo "test_level=full" >> $GITHUB_OUTPUT
-            elif [[ "$COMMENT" == *"verbose"* ]]; then
+            elif [[ "$COMMENT_BODY" == *"verbose"* ]]; then
               echo "test_level=verbose" >> $GITHUB_OUTPUT
             else
               echo "test_level=smoke" >> $GITHUB_OUTPUT
@@ -50,7 +59,7 @@ jobs:
 
       - name: React to comment
         if: steps.check.outputs.should_run == 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             github.rest.reactions.createForIssueComment({
@@ -72,13 +81,16 @@ jobs:
        (github.event_name == 'issue_comment' && needs.check-comment.outputs.should_run == 'true')) &&
       (needs.check-comment.result == 'skipped' || needs.check-comment.result == 'success')
     needs: [check-comment]
-    
+    permissions:
+      contents: read
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # v4
         with:
           # For PR comments, checkout the PR branch
           ref: ${{ github.event.issue.pull_request && format('refs/pull/{0}/head', github.event.issue.number) || github.ref }}
+          persist-credentials: false
 
       - name: Setup environment
         uses: ./.github/actions/setup
@@ -87,11 +99,16 @@ jobs:
 
       - name: Determine test level
         id: test-level
+        # Use env: to avoid template injection — event inputs must not be interpolated into run scripts.
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_TEST_LEVEL: ${{ github.event.inputs.test_level }}
+          COMMENT_TEST_LEVEL: ${{ needs.check-comment.outputs.test_level }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "level=${{ github.event.inputs.test_level }}" >> $GITHUB_OUTPUT
-          elif [ "${{ github.event_name }}" = "issue_comment" ]; then
-            echo "level=${{ needs.check-comment.outputs.test_level }}" >> $GITHUB_OUTPUT
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "level=$INPUT_TEST_LEVEL" >> $GITHUB_OUTPUT
+          elif [ "$EVENT_NAME" = "issue_comment" ]; then
+            echo "level=$COMMENT_TEST_LEVEL" >> $GITHUB_OUTPUT
           else
             echo "level=full" >> $GITHUB_OUTPUT
           fi
@@ -119,7 +136,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: integration-test-results
           path: |
@@ -129,16 +146,20 @@ jobs:
 
       - name: Comment on PR
         if: github.event_name == 'issue_comment' && always()
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        # Use process.env for all job/step context values to prevent template injection.
+        env:
+          JOB_STATUS: ${{ job.status }}
+          TEST_LEVEL: ${{ steps.test-level.outputs.level }}
         with:
           script: |
-            const outcome = '${{ job.status }}';
-            const level = '${{ steps.test-level.outputs.level }}';
+            const outcome = process.env.JOB_STATUS;
+            const level = process.env.TEST_LEVEL;
             const emoji = outcome === 'success' ? '✅' : '❌';
             const status = outcome === 'success' ? 'passed' : 'failed';
-            
+
             const body = `${emoji} Integration tests (${level}) ${status}\n\n[View Run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`;
-            
+
             github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -154,14 +175,16 @@ jobs:
     if: |
       failure() &&
       github.event_name == 'schedule'
+    permissions:
+      issues: write
     steps:
       - name: Create issue for failure
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             const date = new Date().toISOString().split('T')[0];
             const title = `Integration Tests Failed - ${date}`;
-            
+
             // Check if issue already exists
             const issues = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
@@ -169,9 +192,9 @@ jobs:
               labels: 'integration-test-failure',
               state: 'open'
             });
-            
+
             const existingIssue = issues.data.find(issue => issue.title === title);
-            
+
             if (!existingIssue) {
               await github.rest.issues.create({
                 owner: context.repo.owner,

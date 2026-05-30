@@ -6,32 +6,40 @@ inputs:
     description: 'Node.js version to use'
     required: true
     default: '20'
+  cache:
+    description: >-
+      Whether to cache the pnpm store. Set to "false" for publish/release jobs to
+      avoid cache-poisoning of release artifacts.
+    required: false
+    default: 'true'
 
 runs:
   using: 'composite'
   steps:
     - name: Setup pnpm
-      uses: pnpm/action-setup@v4
+      uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4
       with:
-        version: 10.12.4
+        # Version is read from the "packageManager" field in package.json.
         run_install: false
 
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v4
       with:
         node-version: ${{ inputs.node-version }}
-        cache: 'pnpm'
+        cache: ${{ inputs.cache == 'true' && 'pnpm' || '' }}
         registry-url: 'https://registry.npmjs.org'
 
     - name: Get pnpm store directory
+      if: ${{ inputs.cache == 'true' }}
+      id: pnpm-store
       shell: bash
-      run: |
-        echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+      run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
 
     - name: Setup pnpm cache
-      uses: actions/cache@v4
+      if: ${{ inputs.cache == 'true' }}
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
       with:
-        path: ${{ env.STORE_PATH }}
+        path: ${{ steps.pnpm-store.outputs.path }}
         key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
         restore-keys: |
           ${{ runner.os }}-pnpm-store-

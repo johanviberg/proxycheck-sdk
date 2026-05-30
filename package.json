@@ -163,6 +163,16 @@
     "type": "individual",
     "url": "https://johanviberg.com"
   },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "unrs-resolver"
+    ]
+  },
   "devDependencies": {
     "@biomejs/biome": "2.4.11",
     "@jest/globals": "^30.3.0",
