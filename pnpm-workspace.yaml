@@ -1,0 +1,28 @@
+# pnpm settings. As of pnpm 11 the "pnpm" field in package.json is no longer
+# read, so these live here. Also honored by pnpm 10.x (the version pinned via the
+# "packageManager" field / CI), so they are effective both locally and in CI.
+
+# Lifecycle-script build allowlist (only these deps may run install scripts).
+onlyBuiltDependencies:
+  - esbuild
+  - unrs-resolver
+
+# Force patched versions of transitive dependencies flagged by `pnpm audit`.
+# Each override stays within the consumer's major version to avoid breaking
+# changes; pnpm resolves to the newest matching version that is also older than
+# `minimum-release-age` (.npmrc), satisfying the 24h supply-chain quarantine.
+overrides:
+  # ReDoS (CVE-2026-26996 / -27903 / -27904) — keep 3.x and 9.x consumers in-major.
+  "minimatch@3": "^3.1.4"
+  "minimatch@9": "^9.0.7"
+  # ReDoS via extglob — keep 2.x and 4.x consumers in-major.
+  "picomatch@2": "^2.3.2"
+  "picomatch@4": "^4.0.4"
+  # Prototype pollution in merge (CVE-2025-64718) — 3.x consumer.
+  "js-yaml@3": "^3.14.2"
+  # DoS: numeric range defeats max protection — patch each major present.
+  "brace-expansion@1": "^1.1.13"
+  "brace-expansion@2": "^2.0.3"
+  "brace-expansion@5": "^5.0.6"
+  # SSRF/redirect handling — shipped via axios.
+  "follow-redirects": "^1.16.0"

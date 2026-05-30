@@ -167,12 +167,6 @@
     "access": "public",
     "provenance": true
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "unrs-resolver"
-    ]
-  },
   "devDependencies": {
     "@biomejs/biome": "2.4.11",
     "@jest/globals": "^30.3.0",
@@ -192,7 +186,7 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "axios": "^1.15.0",
+    "axios": "^1.16.0",
     "zod": "^3.25.75"
   },
   "size-limit": [
