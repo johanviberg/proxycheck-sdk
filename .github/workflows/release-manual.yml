@@ -27,9 +27,7 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
-          # Node 22+ ships an npm that supports OIDC trusted publishing
-          # (>= 11.5.1); required for the tokenless publish step below.
-          node-version: 22
+          node-version: 20
           # Disable caching in publish jobs to prevent cache-poisoning attacks.
           cache: false
 
@@ -46,10 +44,13 @@ jobs:
           files: |
             dist/**/*
 
+      # npm trusted publishing (OIDC) requires npm >= 11.5.1; Node 20 ships npm 10.
+      # Pin the exact version and skip install scripts for a reproducible bootstrap.
+      - name: Upgrade npm for trusted publishing
+        run: npm install -g --ignore-scripts npm@11.16.0
+
       - name: Publish to npm
         # No NODE_AUTH_TOKEN: authentication is via OIDC trusted publishing,
-        # configured on npmjs.com for this repo + workflow. Under trusted
-        # publishing npm generates the provenance attestation automatically, so
-        # the explicit --provenance flag is omitted (passing it causes
-        # "E422 Unable to authorize the selected provenance").
-        run: npm publish --access public
+        # configured on npmjs.com for this repo + workflow. npm mints a
+        # short-lived credential and a provenance attestation automatically.
+        run: npm publish --provenance --access public
