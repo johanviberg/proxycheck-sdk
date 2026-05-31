@@ -59,7 +59,7 @@ jobs:
 
       - name: React to comment
         if: steps.check.outputs.should_run == 'true'
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
         with:
           script: |
             github.rest.reactions.createForIssueComment({
@@ -86,7 +86,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # v4
+        uses: actions/checkout@8edcb1bdb4e267140fa742c62e395cd74f332709 # v4.2.3
         with:
           # For PR comments, checkout the PR branch
           ref: ${{ github.event.issue.pull_request && format('refs/pull/{0}/head', github.event.issue.number) || github.ref }}
@@ -136,7 +136,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.0
         with:
           name: integration-test-results
           path: |
@@ -146,7 +146,7 @@ jobs:
 
       - name: Comment on PR
         if: github.event_name == 'issue_comment' && always()
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
         # Use process.env for all job/step context values to prevent template injection.
         env:
           JOB_STATUS: ${{ job.status }}
@@ -179,7 +179,7 @@ jobs:
       issues: write
     steps:
       - name: Create issue for failure
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
         with:
           script: |
             const date = new Date().toISOString().split('T')[0];
