@@ -27,7 +27,9 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
-          node-version: 20
+          # Node 22+ ships an npm that supports OIDC trusted publishing
+          # (>= 11.5.1); required for the tokenless publish step below.
+          node-version: 22
           # Disable caching in publish jobs to prevent cache-poisoning attacks.
           cache: false
 
@@ -43,11 +45,6 @@ jobs:
           generate_release_notes: true
           files: |
             dist/**/*
-
-      # npm trusted publishing (OIDC) requires npm >= 11.5.1; Node 20 ships npm 10.
-      # Pin the exact version and skip install scripts for a reproducible bootstrap.
-      - name: Upgrade npm for trusted publishing
-        run: npm install -g --ignore-scripts npm@11.16.0
 
       - name: Publish to npm
         # No NODE_AUTH_TOKEN: authentication is via OIDC trusted publishing,
