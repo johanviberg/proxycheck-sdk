@@ -5,7 +5,7 @@
 /**
  * SDK version — single source of truth
  */
-export const VERSION = "0.9.0";
+export const VERSION = "0.9.2";
 
 /**
  * API Endpoints
