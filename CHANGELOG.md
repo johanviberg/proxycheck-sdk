@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.2] - 2026-05-31
+
+### Security
+
+- Upgrade all dependencies flagged by `pnpm audit` to patched versions within
+  the configured release-age quarantine (axios → ^1.16.0, follow-redirects →
+  ^1.16.0, plus minimatch / picomatch / js-yaml / brace-expansion via
+  overrides). `pnpm audit` now reports 0 known vulnerabilities.
+- Harden the pnpm supply chain: add `.npmrc` (`minimum-release-age`,
+  `verify-store-integrity`, `audit-level`), `publishConfig.provenance`, and a
+  lifecycle-script build allowlist in `pnpm-workspace.yaml`.
+- Add a zizmor GitHub Actions security audit (SARIF upload + medium-severity
+  hard-fail gate), SHA-pin all workflow actions, apply least-privilege
+  `permissions`, and fix template-injection / cache-poisoning / artipacked
+  findings across CI and release workflows.
+
+### Fixed
+
+- Correct invalid action SHA pins (codecov, commitlint, size-limit) that were
+  unresolvable by the Actions runner and broke CI at the "Set up job" step.
+
+> Note: 0.9.1 was tagged in July 2025 but never published to npm; this is the
+> first npm release since 0.9.0.
+
 ## [0.9.0] - 2025-07-07
 
 ### 🎉 Initial Public Release

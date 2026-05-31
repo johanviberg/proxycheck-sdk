@@ -73,7 +73,7 @@ jobs:
 
       - name: Check commit messages
         if: github.event_name == 'pull_request'
-        uses: wagoid/commitlint-github-action@9a8b1a8a52b9bcf95d36bb8e64d9b0d0b6e2e2c8 # v6
+        uses: wagoid/commitlint-github-action@b948419dd99f3fd78a6548d48f94e3df7f6bf3ed # v6
 
   test:
     needs: changes
@@ -114,7 +114,7 @@ jobs:
 
       - name: Upload coverage
         if: matrix.os == 'ubuntu-latest' && matrix.node == 20
-        uses: codecov/codecov-action@671f6e63caa8a1cd124048da3a4a685069a5f5be # v5
+        uses: codecov/codecov-action@75cd11691c0faa626561e295848008c8a7dddffe # v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/lcov.info
