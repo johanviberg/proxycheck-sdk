@@ -48,6 +48,8 @@ jobs:
 
       - name: Publish to npm
         # No NODE_AUTH_TOKEN: authentication is via OIDC trusted publishing,
-        # configured on npmjs.com for this repo + workflow. npm mints a
-        # short-lived credential and a provenance attestation automatically.
-        run: npm publish --provenance --access public
+        # configured on npmjs.com for this repo + workflow. Under trusted
+        # publishing npm generates the provenance attestation automatically, so
+        # the explicit --provenance flag is omitted (passing it causes
+        # "E422 Unable to authorize the selected provenance").
+        run: npm publish --access public
