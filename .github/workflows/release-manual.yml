@@ -44,7 +44,12 @@ jobs:
           files: |
             dist/**/*
 
+      # npm trusted publishing (OIDC) requires npm >= 11.5.1; Node 20 ships npm 10.
+      - name: Upgrade npm for trusted publishing
+        run: npm install -g npm@latest
+
       - name: Publish to npm
+        # No NODE_AUTH_TOKEN: authentication is via OIDC trusted publishing,
+        # configured on npmjs.com for this repo + workflow. npm mints a
+        # short-lived credential and a provenance attestation automatically.
         run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
