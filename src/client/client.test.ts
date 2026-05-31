@@ -288,7 +288,7 @@ describe("ProxyCheckClient", () => {
       const result = client.getClientInfo();
 
       expect(result).toEqual({
-        version: "0.9.0",
+        version: "0.9.2",
         baseUrl: "https://proxycheck.io",
         tlsEnabled: true,
         configured: true,

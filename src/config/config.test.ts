@@ -109,7 +109,7 @@ describe("Configuration Management", () => {
       expect(config.isTlsEnabled()).toBe(true);
       expect(config.getTimeout()).toBe(10000);
       expect(config.getRetryConfig()).toEqual({ retries: 2, retryDelay: 500 });
-      expect(config.getUserAgent()).toBe("proxycheck-sdk/0.9.0");
+      expect(config.getUserAgent()).toBe("proxycheck-sdk/0.9.2");
     });
 
     it("should set API key", () => {

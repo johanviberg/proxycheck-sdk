@@ -43,7 +43,7 @@ describe("HttpClient", () => {
         baseURL: "https://proxycheck.io",
         timeout: 5000,
         headers: {
-          "User-Agent": "proxycheck-sdk/0.9.0",
+          "User-Agent": "proxycheck-sdk/0.9.2",
           Accept: "application/json",
           "Content-Type": "application/json",
         },
