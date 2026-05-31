@@ -4,7 +4,7 @@
 
 import { randomUUID } from "node:crypto";
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from "axios";
-import { type ProxyCheckError, createErrorFromResponse, isRateLimitError } from "../errors";
+import { createErrorFromResponse, isRateLimitError, type ProxyCheckError } from "../errors";
 import type { Logger } from "../logging";
 import type { ClientConfig, RateLimitInfo, RequestConfig } from "../types";
 import { DEFAULTS } from "../types/constants";

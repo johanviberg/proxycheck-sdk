@@ -1,6 +1,5 @@
 // Re-export version from single source of truth
 import { VERSION } from "./types/constants";
-export { VERSION };
 
 // Export main client
 export { ProxyCheckClient } from "./client";
@@ -17,6 +16,7 @@ export { RulesService } from "./services/rules";
 export { StatsService } from "./services/stats";
 // Export types
 export * from "./types";
+export { VERSION };
 
 export default {
   version: VERSION,
