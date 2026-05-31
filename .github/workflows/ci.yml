@@ -73,7 +73,7 @@ jobs:
 
       - name: Check commit messages
         if: github.event_name == 'pull_request'
-        uses: wagoid/commitlint-github-action@d4456dc7f33b00f88f7e29c2cd0f7c5dc83fd2cc # v6
+        uses: wagoid/commitlint-github-action@9a8b1a8a52b9bcf95d36bb8e64d9b0d0b6e2e2c8 # v6
 
   test:
     needs: changes
@@ -114,7 +114,7 @@ jobs:
 
       - name: Upload coverage
         if: matrix.os == 'ubuntu-latest' && matrix.node == 20
-        uses: codecov/codecov-action@5a10915f9b9f665d2b1109a04eaf73dd33dbafdb # v5
+        uses: codecov/codecov-action@671f6e63caa8a1cd124048da3a4a685069a5f5be # v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/lcov.info
@@ -148,7 +148,7 @@ jobs:
 
       - name: Check bundle size
         if: github.event_name == 'pull_request'
-        uses: andresz1/size-limit-action@e92e90232db1c1fd571bedf5c2684e2cd3eb0db5 # v1
+        uses: andresz1/size-limit-action@e7493a72a44b113341c0cf6186ab49c17c4b65c1 # v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           skip_step: install
